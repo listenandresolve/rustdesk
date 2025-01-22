@@ -9,6 +9,25 @@ on:
       upload-tag:
         type: string
         default: "Listen and Resolve Custom"
+    secrets:
+      MACOS_P12_BASE64:
+        required: false
+      MACOS_P12_PASSWORD:
+        required: false
+      MACOS_NOTARIZE_JSON:
+        required: false
+      MACOS_CODESIGN_IDENTITY:
+        required: false
+      RS_PUB_KEY:
+        required: false
+      RENDEZVOUS_SERVER:
+        required: false
+      API_SERVER:
+        required: false
+      SIGN_BASE_URL:
+        required: false
+      SIGN_SECRET_KEY:
+        required: false
   workflow_dispatch:
 
 env:
