@@ -17,7 +17,7 @@ def log_separator():
 
 def process_file(file_path, pattern, replacement, file_description):
     if not os.path.exists(file_path):
-        log_error(f"{file_description} introuvable : {file_path}")
+        log_error(f"{file_description} NOT FOUND : {file_path}")
         return
 
     try:
@@ -26,19 +26,19 @@ def process_file(file_path, pattern, replacement, file_description):
             
             # Vérifier si le motif est trouvé
             if not re.search(pattern, content, re.DOTALL):
-                log_error(f"Motif '{pattern}' non trouvé dans {file_description}")
+                log_error(f"'{pattern}' --- NOT FOUND --- in {file_description}")
             else:
                 # Remplacement
                 new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
                 
                 if content == new_content:
-                    log_error(f"Aucune modification apportée à {file_description}.")
+                    log_error(f"Nothing to change to {file_description}.")
                 else:
                     # Écriture des modifications
                     f.seek(0)
                     f.write(new_content)
                     f.truncate()
-                    log_success(f"{file_description} modifié avec succès.")
+                    log_success(f"{file_description} updated.")
     except Exception as e:
         log_error(f"Erreur lors du traitement de {file_description} : {e}")
 
@@ -130,11 +130,16 @@ def customize_files():
     logging.info(f"Path : {desktop_home_page_file}")
     process_file(
         file_path=desktop_home_page_file,
-        pattern=r'Widget buildHelpCards\(String updateUrl\) {',
-        replacement=r'''Widget buildHelpCards(String updateUrl) {    
-    bind.isDisableInstallation = () => true;
-    bind.mainIsInstalledDaemon = ({prompt = false}) => true;''',
-        file_description="desktop_home_page.dart - ajout des variables de désactivation"
+        pattern=r'if \(isWindows && !bind\.isDisableInstallation\(\)\) {',
+        replacement=r'if (isWindows && bind.isDisableInstallation()) {',
+        file_description="desktop_home_page.dart (Delete install Windows)"
+    )
+
+    process_file(
+        file_path=desktop_home_page_file,
+        pattern=r'mainIsInstalledDaemon\(prompt: true\)',
+        replacement=r'mainIsInstalledDaemon(prompt: false)',
+        file_description="desktop_home_page.dart (Delete install macOS)"
     )
     log_separator()
 
