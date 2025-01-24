@@ -137,8 +137,8 @@ def customize_files():
 
     process_file(
         file_path=desktop_home_page_file,
-        pattern=r'mainIsInstalledDaemon\(prompt: true\)',
-        replacement=r'mainIsInstalledDaemon(prompt: false)',
+        pattern=r'!bind.mainIsInstalledDaemon\(prompt: false\)',
+        replacement=r'bind.mainIsInstalledDaemon(prompt: false)',
         file_description="desktop_home_page.dart (Delete install macOS)"
     )
     log_separator()
