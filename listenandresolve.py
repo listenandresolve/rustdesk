@@ -48,7 +48,7 @@ def customize_files():
 
     # Fichier 1 : flutter/lib/common.dart
     # Logo
-    logging.info(f"===== CUSTOM : LoadLogo")
+    logging.info(f"=== CUSTOM : LoadLogo")
     common_dart_file = os.path.join(script_dir, 'flutter/lib/common.dart')
     logging.info(f"Path : {common_dart_file}")
     process_file(
@@ -82,7 +82,7 @@ def customize_files():
 
     # Fichier 2 : src/lang/en.rs
     # Aide pour macOS
-    logging.info(f"===== CUSTOM : Link for help")
+    logging.info(f"=== CUSTOM : Link for help")
     en_rs_file = os.path.join(script_dir, 'src/lang/en.rs')
     logging.info(f"Path : {en_rs_file}")
     process_file(
@@ -95,7 +95,7 @@ def customize_files():
 
     # Fichier 3 : libs/hbb_common/src/config.rs
     # Incoming only
-    logging.info(f"===== CUSTOM : Incoming Mode Only")
+    logging.info(f"=== CUSTOM : Incoming Mode Only")
     config_rs_file = os.path.join(script_dir, 'libs/hbb_common/src/config.rs')
     logging.info(f"Path : {config_rs_file}")
     process_file(
@@ -112,7 +112,7 @@ def customize_files():
 
     # Fichier 4 : libs/hbb_common/src/lib.rs
     # Désactiver les mises à jour
-    logging.info(f"===== CUSTOM : Disable check update")
+    logging.info(f"=== CUSTOM : Disable check update")
     lib_rs_file = os.path.join(script_dir, 'libs/hbb_common/src/lib.rs')
     logging.info(f"Path : {lib_rs_file}")
     process_file(
@@ -124,25 +124,17 @@ def customize_files():
     log_separator()
     
     # Fichier 5 : flutter/lib/desktop/pages/desktop_home_page.dart
-    # Modification des cartes d'aide (Windows et macOS)
-    logging.info(f"===== CUSTOM : Help Cards")
+    # Désactiver les cartes d'aides
+    logging.info(f"=== CUSTOM : Help Cards")
     desktop_home_page_file = os.path.join(script_dir, 'flutter/lib/desktop/pages/desktop_home_page.dart')
     logging.info(f"Path : {desktop_home_page_file}")
-    
-    # Suppression de la carte d'installation Windows
     process_file(
         file_path=desktop_home_page_file,
-        pattern=r'if \(isWindows && !bind\.isDisableInstallation\(\)\) {[\s\S]*?bind\.mainGotoInstall\(\);\s*}\);[\s\S]*?}',
-        replacement='if (isWindows && !bind.isDisableInstallation()) {',
-        file_description="desktop_home_page.dart - Windows install card"
-    )
-
-    # Suppression de la carte daemon macOS
-    process_file(
-        file_path=desktop_home_page_file,
-        pattern=r'else if \(!isOutgoingOnly &&\s*!svcStopped\.value &&\s*bind\.mainIsInstalled\(\) &&\s*!bind\.mainIsInstalledDaemon\(prompt: false\)\) {[\s\S]*?bind\.mainIsInstalledDaemon\(prompt: true\);\s*}\);[\s\S]*?}',
-        replacement='',
-        file_description="desktop_home_page.dart - macOS daemon card"
+        pattern=r'Widget buildHelpCards\(String updateUrl\) {',
+        replacement=r'''Widget buildHelpCards(String updateUrl) {    
+    bind.isDisableInstallation = () => true;
+    bind.mainIsInstalledDaemon = ({prompt = false}) => true;''',
+        file_description="desktop_home_page.dart - ajout des variables de désactivation"
     )
     log_separator()
 
