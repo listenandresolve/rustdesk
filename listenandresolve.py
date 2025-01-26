@@ -62,7 +62,7 @@ def customize_files():
             return Container(
                 constraints: BoxConstraints(maxWidth: 300, maxHeight: 180),
                 child: Image.network(
-                'https://listenandresolve.com/rustdesk.webp',
+                'https://listenandresolve.com/rustdesk/logo.webp',
                 fit: BoxFit.contain,
                 errorBuilder: (ctx, error, stackTrace) {
                     return Image.asset(
