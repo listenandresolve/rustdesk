@@ -25,8 +25,15 @@ def download_and_replace_file(url, destination_path, file_description):
         # S'assurer que le répertoire de destination existe
         os.makedirs(os.path.dirname(destination_path), exist_ok=True)
         
+        # Créer une requête avec un User-Agent
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36'
+        }
+        req = urllib.request.Request(url, headers=headers)
+        
         # Télécharger le fichier
-        urllib.request.urlretrieve(url, destination_path)
+        with urllib.request.urlopen(req) as response, open(destination_path, 'wb') as out_file:
+            shutil.copyfileobj(response, out_file)
         log_success(f"{file_description} downloaded and replaced successfully at {destination_path}")
         return True
     except Exception as e:
