@@ -1,7 +1,7 @@
 name: Build RustDesk for Listen and Resolve
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       upload-artifact:
         type: boolean
