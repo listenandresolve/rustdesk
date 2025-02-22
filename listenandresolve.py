@@ -173,6 +173,23 @@ def customize_files():
     };''',
         file_description="config.rs"
     )
+    # Modification du serveur Rendezvous
+    logging.info(f"=== CUSTOM : Rendezvous Server")
+    process_file(
+        file_path=config_rs_file,
+        pattern=r'pub const RENDEZVOUS_SERVERS: &\[&str\] = &\["[^"]*"\];',
+        replacement=r'pub const RENDEZVOUS_SERVERS: &[&str] = &["${{ secrets.RENDEZVOUS_SERVER }}"];',
+        file_description="config.rs (Rendezvous Server)"
+    )
+    
+    # Modification de la clé publique RS
+    logging.info(f"=== CUSTOM : RS Public Key")
+    process_file(
+        file_path=config_rs_file,
+        pattern=r'pub const RS_PUB_KEY: &str = "[^"]*";',
+        replacement=r'pub const RS_PUB_KEY: &str = "${{ secrets.API_SERVER }}";',
+        file_description="config.rs (Public Key)"
+    )
     log_separator()
 
     # Fichier 4 : libs/hbb_common/src/lib.rs
@@ -193,24 +210,6 @@ def customize_files():
     logging.info(f"=== CUSTOM : Help Cards")
     desktop_home_page_file = os.path.join(script_dir, 'flutter/lib/desktop/pages/desktop_home_page.dart')
     logging.info(f"Path : {desktop_home_page_file}")
-    process_file( # Window size fix
-        file_path=desktop_home_page_file,
-        pattern=(
-            r'OnlineStatusWidget $[\s\S]*?Future\.delayed\(Duration\(milliseconds: 300$ ,  $$  \{[\s\S]*?_updateWindowSize $$ ;[\s\S]*?\}\);'
-        ),
-        replacement=(
-            r'''OnlineStatusWidget(
-              onSvcStatusChanged: () {
-                if (isInHomePage()) {
-                  Future.delayed(Duration(milliseconds: 1000), () {
-                    _updateWindowSize();
-                  });
-                }
-              },
-            )'''
-        ),
-        file_description="desktop_home_page.dart (Change delay to 1000ms for OnlineStatusWidget)"
-    )
     process_file( # Désactiver l'installation Windows
         file_path=desktop_home_page_file,
         pattern=r'if \(isWindows && !bind\.isDisableInstallation\(\)\) {',
