@@ -187,7 +187,7 @@ def customize_files():
     process_file(
         file_path=config_rs_file,
         pattern=r'pub const RS_PUB_KEY: &str = "[^"]*";',
-        replacement=r'pub const RS_PUB_KEY: &str = "${{ secrets.API_SERVER }}";',
+        replacement=r'pub const RS_PUB_KEY: &str = "${{ secrets.RS_PUB_KEY }}";',
         file_description="config.rs (Public Key)"
     )
     log_separator()
