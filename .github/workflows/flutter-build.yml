@@ -92,6 +92,13 @@ jobs:
           name: bridge-artifact
           path: ./
 
+### CUSTOMIZATION LISTEN AND RESOLVE
+      - name: ==== Run Customization for Listen and Resolve ====
+        run: python3 listenandresolve.py
+        shell: bash
+        continue-on-error: false 
+### CUSTOMIZATION LISTEN AND RESOLVE
+
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
         with:
@@ -234,7 +241,7 @@ jobs:
           python preprocess.py --arp -d ../../rustdesk
           nuget restore msi.sln
           msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10
-          mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
+          mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesk-${{ matrix.job.arch }}.msi
           sha256sum ../../SignOutput/rustdesk-*.msi
 
 ### CUSTOMIZATION LISTEN AND RESOLVE
