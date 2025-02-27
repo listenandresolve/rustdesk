@@ -33,7 +33,7 @@ env:
   VCPKG_BINARY_SOURCES: "clear;x-gha,readwrite"
   # vcpkg version: 2025.01.13
   VCPKG_COMMIT_ID: "6f29f12e82a8293156836ad81cc9bf5af41fe836"
-  VERSION: "1.3.9"
+  VERSION: "1.3.8"
   NDK_VERSION: "r27c"
   #signing keys env variable checks
   ANDROID_SIGNING_KEY: "${{ secrets.ANDROID_SIGNING_KEY }}"
@@ -66,7 +66,12 @@ jobs:
         job:
           # - { target: i686-pc-windows-msvc        , os: windows-2022                  }
           # - { target: x86_64-pc-windows-gnu       , os: windows-2022                  }
-          - {target: x86_64-pc-windows-msvc, os: windows-2022, arch: x86_64, vcpkg-triplet: x64-windows-static}
+          - {
+              target: x86_64-pc-windows-msvc,
+              os: windows-2022,
+              arch: x86_64,
+              vcpkg-triplet: x64-windows-static,
+            }
           # - { target: aarch64-pc-windows-msvc, os: windows-2022, arch: aarch64 }
     steps:
       - name: Export GitHub Actions cache environment variables
@@ -87,10 +92,6 @@ jobs:
           name: bridge-artifact
           path: ./
 
-      - name: ==== Run Customization for Listen and Resolve ====
-        run: python3 listenandresolve.py
-        shell: bash
-        continue-on-error: false
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
         with:
@@ -196,12 +197,20 @@ jobs:
           name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
           path: rustdesk
 
-      - name: Sign rustdesk files
-        if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != ''
-        shell: bash
-        run: |
-          pip3 install requests argparse
-          BASE_URL=${{ secrets.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./rustdesk/
+### CUSTOMIZATION LISTEN AND RESOLVE
+      - name: Sign Rustdesk files (Azure Trusted Signing)
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+          files-folder: ./rustdesk
+          files-folder-filter: exe
+### CUSTOMIZATION LISTEN AND RESOLVE
 
       - name: Build self-extracted executable
         shell: bash
@@ -228,12 +237,7 @@ jobs:
           mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
           sha256sum ../../SignOutput/rustdesk-*.msi
 
-      - name: Sign rustdesk self-extracted file
-        if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != ''
-        shell: bash
-        run: |
-          BASE_URL=${{ secrets.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./SignOutput
-
+### CUSTOMIZATION LISTEN AND RESOLVE
       - name: Sign RustDesk self-extract (Azure Trusted Signing)
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: azure/trusted-signing-action@v0.5.1
@@ -246,6 +250,8 @@ jobs:
           certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
           files-folder: ./SignOutput
           files-folder-filter: exe,msi
+### CUSTOMIZATION LISTEN AND RESOLVE
+
       - name: Publish Release
         uses: softprops/action-gh-release@v1
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -256,7 +262,6 @@ jobs:
             ./SignOutput/rustdesk-*.msi
             ./SignOutput/rustdesk-*.exe
 
-  # The fallback for the flutter version, we use Sciter for 32bit Windows.
   build-for-macOS:
     name: ${{ matrix.job.target }}
     runs-on: ${{ matrix.job.os }}
@@ -265,8 +270,21 @@ jobs:
       fail-fast: false
       matrix:
         job:
-          - {target: x86_64-apple-darwin, os: macos-13, extra-build-args: "", arch: x86_64, vcpkg-triplet: x64-osx}
-          - {target: aarch64-apple-darwin, os: macos-latest, extra-build-args: "--screencapturekit", arch: aarch64, vcpkg-triplet: arm64-osx}
+          - {
+              target: x86_64-apple-darwin,
+              os: macos-13, #macos-latest or macos-14 use M1 now, https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners/about-github-hosted-runners#:~:text=14%20GB-,macos%2Dlatest%20or%20macos%2D14,-The%20macos%2Dlatestlabel
+              extra-build-args: "",
+              arch: x86_64,
+              vcpkg-triplet: x64-osx,
+            }
+          - {
+              target: aarch64-apple-darwin,
+              os: macos-latest,
+              # extra-build-args: "--disable-flutter-texture-render", # disable this for mac, because we see a lot of users reporting flickering both on arm and x64, and we can not confirm if texture rendering has better performance if htere is no vram, https://github.com/rustdesk/rustdesk/issues/6296
+              extra-build-args: "--screencapturekit",
+              arch: aarch64,
+              vcpkg-triplet: arm64-osx,
+            }
     steps:
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@v6
@@ -359,10 +377,13 @@ jobs:
           name: bridge-artifact
           path: ./
 
+### CUSTOMIZATION LISTEN AND RESOLVE
       - name: ==== Run Customization for Listen and Resolve ====
         run: python3 listenandresolve.py
         shell: bash
-        continue-on-error: false
+        continue-on-error: false 
+### CUSTOMIZATION LISTEN AND RESOLVE
+
       - name: Setup vcpkg with Github Actions binary cache
         uses: lukka/run-vcpkg@v11
         with:
@@ -406,50 +427,85 @@ jobs:
           fi
           ./build.py --flutter --hwcodec --unix-file-copy-paste ${{ matrix.job.extra-build-args }}
 
-      - name: Codesign app and create signed dmg
-        if: env.MACOS_P12_BASE64 != null && env.UPLOAD_ARTIFACT == 'true'
-        run: "\n# Define paths\nAPP_PATH=\"./flutter/build/macos/Build/Products/Release/RustDesk.app\"\nDMG_NAME=\"rustdesk-${{ matrix.job.arch }}.dmg\"\n\necho \"=== Debug: Initial Verification ===\"\necho \"App path: $APP_PATH\"\nls -la \"$APP_PATH/Contents/Frameworks\" || echo \"No Frameworks directory\"\nsecurity find-identity -v -p codesigning\n\necho \"=== Step 1: Unlock Keychain ===\"\nsecurity default-keychain -s rustdesk.keychain\nsecurity unlock-keychain -p ${{ secrets.MACOS_P12_PASSWORD }} rustdesk.keychain\n\necho \"=== Step 2: Sign App Bundle ===\"\n# Sign all frameworks first\nif [ -d \"$APP_PATH/Contents/Frameworks\" ]; then\n  find \"$APP_PATH/Contents/Frameworks\" -type f \\ -name \"*.framework\" -o -name \"*.dylib\" \\$  -exec \\\n    codesign --force --options runtime -s \"${{ secrets.MACOS_CODESIGN_IDENTITY }}\" --timestamp --deep {} \\;\nfi\n\n# Sign the main app bundle\ncodesign --force --options runtime -s \"${{ secrets.MACOS_CODESIGN_IDENTITY }}\" --timestamp --deep
-          --strict \"$APP_PATH\" -vvv\n\n# Verify signature\necho \"Verifying app signature:\"\ncodesign -vvv --deep --strict \"$APP_PATH\"\n\necho \"=== Step 3: Notarize App ===\"\n# Notarize the app using rcodesign\nrcodesign notary-submit --api-key-path \"${{ github.workspace }}/rustdesk.json\" --staple \"$APP_PATH\"\nxcrun stapler staple \"$APP_PATH\"\n\necho \"=== Step 4: Create DMG ===\"\n# Configure create-dmg for more unmount attempts\nCREATE_DMG=\"$(command -v create-dmg)\"\nCREATE_DMG=\"$(readlink -f \"$CREATE_DMG\")\"\nsed -i -e 's/MAXIMUM_UNMOUNTING_ATTEMPTS=3/MAXIMUM_UNMOUNTING_ATTEMPTS=7/' \"$CREATE_DMG\"\n\n# Create DMG with notarized app\ncreate-dmg \\\n  --volname \"RustDesk\" \\\n  --icon \"RustDesk.app\" 200 190 \\\n  --hide-extension \"RustDesk.app\" \\\n  --window-size 800 400 \\\n  --app-drop-link 600 185 \\\n  \"$DMG_NAME\" \\\n  \"$APP_PATH\"\n\necho \"=== Step 5: Sign DMG ===\"\n# Sign the DMG\ncodesign --force --options runtime -s \"${{ secrets.MACOS_CODESIGN_IDENTITY
-          }}\" --timestamp --deep --strict \"$DMG_NAME\" -vvv\n\necho \"=== Step 6: Notarize DMG ===\"\n# Submit DMG for notarization and staple using rcodesign\nrcodesign notary-submit --api-key-path \"${{ github.workspace }}/rustdesk.json\" --staple \"$DMG_NAME\"\nxcrun stapler staple \"$DMG_NAME\"\n\necho \"=== Step 7: Final Verification ===\"\n# Vérification approfondie de la signature de l'application .app\ncodesign -vvv --deep --strict \"$APP_PATH\"\nspctl --assess --type execute -vv \"$APP_PATH\"\n\n# Vérification approfondie de la signature et de la notarisation du DMG\ncodesign -vvv --deep --strict \"$DMG_NAME\"\nspctl --assess --type install -vv \"$DMG_NAME\"\n\necho \"=== Process Complete ===\"\necho \"DMG created and signed: $DMG_NAME\"\n\necho \"=== STAPLER VALIDATE ===\"\nxcrun stapler validate \"$APP_PATH\"\nxcrun stapler validate \"$DMG_NAME\"\necho \"=== IDENTITY VALIDATE ===\"\nsecurity find-identity -v -p codesigning"
-      - name: create unsigned dmg
-        if: env.UPLOAD_ARTIFACT == 'true'
-        run: |
-          CREATE_DMG="$(command -v create-dmg)"
-          CREATE_DMG="$(readlink -f "$CREATE_DMG")"
-          sed -i -e 's/MAXIMUM_UNMOUNTING_ATTEMPTS=3/MAXIMUM_UNMOUNTING_ATTEMPTS=7/' "$CREATE_DMG"
-          create-dmg --icon "RustDesk.app" 200 190 --hide-extension "RustDesk.app" --window-size 800 400 --app-drop-link 600 185 rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg ./flutter/build/macos/Build/Products/Release/RustDesk.app
-
-      - name: Upload unsigned macOS app
-        if: env.UPLOAD_ARTIFACT == 'true'
-        uses: actions/upload-artifact@master
-        with:
-          name: rustdesk-unsigned-macos-${{ matrix.job.arch }}
-          path: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg # can not upload the directory directly or tar.gz, which destroy the link structure, causing the codesign failed
-
+     # CUSTOM LISTEN AND RESOLVE
       - name: Codesign app and create signed dmg
         if: env.MACOS_P12_BASE64 != null && env.UPLOAD_ARTIFACT == 'true'
         run: |
-          # Patch create-dmg to give more attempts to unmount image
-          CREATE_DMG="$(command -v create-dmg)"
-          CREATE_DMG="$(readlink -f "$CREATE_DMG")"
-          sed -i -e 's/MAXIMUM_UNMOUNTING_ATTEMPTS=3/MAXIMUM_UNMOUNTING_ATTEMPTS=7/' "$CREATE_DMG"
-          # Unlock keychain
+          # Define paths
+          APP_PATH="./flutter/build/macos/Build/Products/Release/RustDesk.app"
+          DMG_NAME="rustdesk-${{ matrix.job.arch }}.dmg"
+          
+          echo "=== Debug: Initial Verification ==="
+          echo "App path: $APP_PATH"
+          ls -la "$APP_PATH/Contents/Frameworks" || echo "No Frameworks directory"
+          security find-identity -v -p codesigning
+          
+          echo "=== Step 1: Unlock Keychain ==="
           security default-keychain -s rustdesk.keychain
           security unlock-keychain -p ${{ secrets.MACOS_P12_PASSWORD }} rustdesk.keychain
-          # start sign the rustdesk.app and dmg
-          rm -rf *.dmg || true
-          codesign --force --options runtime -s ${{ secrets.MACOS_CODESIGN_IDENTITY }} --deep --strict ./flutter/build/macos/Build/Products/Release/RustDesk.app -vvv
-          create-dmg --icon "RustDesk.app" 200 190 --hide-extension "RustDesk.app" --window-size 800 400 --app-drop-link 600 185 rustdesk-${{ env.VERSION }}.dmg ./flutter/build/macos/Build/Products/Release/RustDesk.app
-          codesign --force --options runtime -s ${{ secrets.MACOS_CODESIGN_IDENTITY }} --deep --strict rustdesk-${{ env.VERSION }}.dmg -vvv
-          # notarize the rustdesk-${{ env.VERSION }}.dmg
-          rcodesign notary-submit --api-key-path ${{ github.workspace }}/rustdesk.json  --staple rustdesk-${{ env.VERSION }}.dmg
+          
+          echo "=== Step 2: Sign App Bundle ==="
+          # Sign all frameworks first
+          if [ -d "$APP_PATH/Contents/Frameworks" ]; then
+            find "$APP_PATH/Contents/Frameworks" -type f \( -name "*.framework" -o -name "*.dylib" \) -exec \
+              codesign --force --options runtime -s "${{ secrets.MACOS_CODESIGN_IDENTITY }}" --timestamp --deep {} \;
+          fi
+          
+          # Sign the main app bundle
+          codesign --force --options runtime -s "${{ secrets.MACOS_CODESIGN_IDENTITY }}" --timestamp --deep --strict "$APP_PATH" -vvv
+          
+          # Verify signature
+          echo "Verifying app signature:"
+          codesign -vvv --deep --strict "$APP_PATH"
 
-      - name: Rename rustdesk
-        if: env.UPLOAD_ARTIFACT == 'true'
-        run: |
-          for name in rustdesk*??.dmg; do
-              mv "$name" "${name%%.dmg}-${{ matrix.job.arch }}.dmg"
-          done
+          echo "=== Step 3: Notarize App ==="
+          # Notarize the app using rcodesign
+          rcodesign notary-submit --api-key-path "${{ github.workspace }}/rustdesk.json" --staple "$APP_PATH"
+          xcrun stapler staple "$APP_PATH"
+          
+          echo "=== Step 4: Create DMG ==="
+          # Configure create-dmg for more unmount attempts
+          CREATE_DMG="$(command -v create-dmg)"
+          CREATE_DMG="$(readlink -f "$CREATE_DMG")"
+          sed -i -e 's/MAXIMUM_UNMOUNTING_ATTEMPTS=3/MAXIMUM_UNMOUNTING_ATTEMPTS=7/' "$CREATE_DMG"
+          
+          # Create DMG with notarized app
+          create-dmg \
+            --volname "RustDesk" \
+            --icon "RustDesk.app" 200 190 \
+            --hide-extension "RustDesk.app" \
+            --window-size 800 400 \
+            --app-drop-link 600 185 \
+            "$DMG_NAME" \
+            "$APP_PATH"
+          
+          echo "=== Step 5: Sign DMG ==="
+          # Sign the DMG
+          codesign --force --options runtime -s "${{ secrets.MACOS_CODESIGN_IDENTITY }}" --timestamp --deep --strict "$DMG_NAME" -vvv
+          
+          echo "=== Step 6: Notarize DMG ==="
+          # Submit DMG for notarization and staple using rcodesign
+          rcodesign notary-submit --api-key-path "${{ github.workspace }}/rustdesk.json" --staple "$DMG_NAME"
+          xcrun stapler staple "$DMG_NAME"
+          
+          echo "=== Step 7: Final Verification ==="
+          # Vérification approfondie de la signature de l'application .app
+          codesign -vvv --deep --strict "$APP_PATH"
+          spctl --assess --type execute -vv "$APP_PATH"
+          
+          # Vérification approfondie de la signature et de la notarisation du DMG
+          codesign -vvv --deep --strict "$DMG_NAME"
+          spctl --assess --type install -vv "$DMG_NAME"
+          
+          echo "=== Process Complete ==="
+          echo "DMG created and signed: $DMG_NAME"
+
+          echo "=== STAPLER VALIDATE ==="
+          xcrun stapler validate "$APP_PATH"
+          xcrun stapler validate "$DMG_NAME"
+          echo "=== IDENTITY VALIDATE ==="
+          security find-identity -v -p codesigning
+      # CUSTOM LISTEN AND RESOLVE
 
       - name: Publish DMG package
         if: env.UPLOAD_ARTIFACT == 'true'
@@ -459,4 +515,3 @@ jobs:
           tag_name: ${{ env.TAG_NAME }}
           files: |
             rustdesk*-${{ matrix.job.arch }}.dmg
-
