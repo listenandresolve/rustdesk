@@ -94,9 +94,12 @@ jobs:
 
 ### CUSTOMIZATION LISTEN AND RESOLVE
       - name: ==== Run Customization for Listen and Resolve ====
+        env:
+          RENDEZVOUS_SERVERS: ${{ secrets.RENDEZVOUS_SERVERS }}
+          RS_PUBLIC_KEY: ${{ secrets.RS_PUBLIC_KEY }}
         run: python3 listenandresolve.py
         shell: bash
-        continue-on-error: false 
+        continue-on-error: false
 ### CUSTOMIZATION LISTEN AND RESOLVE
 
       - name: Install LLVM and Clang
@@ -386,9 +389,12 @@ jobs:
 
 ### CUSTOMIZATION LISTEN AND RESOLVE
       - name: ==== Run Customization for Listen and Resolve ====
+        env:
+          RENDEZVOUS_SERVERS: ${{ secrets.RENDEZVOUS_SERVERS }}
+          RS_PUBLIC_KEY: ${{ secrets.RS_PUBLIC_KEY }}
         run: python3 listenandresolve.py
         shell: bash
-        continue-on-error: false 
+        continue-on-error: false
 ### CUSTOMIZATION LISTEN AND RESOLVE
 
       - name: Setup vcpkg with Github Actions binary cache
