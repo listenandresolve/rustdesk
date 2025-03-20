@@ -95,8 +95,8 @@ jobs:
 ### CUSTOMIZATION LISTEN AND RESOLVE
       - name: ==== Run Customization for Listen and Resolve ====
         env:
-          RENDEZVOUS_SERVERS: ${{ secrets.RENDEZVOUS_SERVERS }}
-          RS_PUBLIC_KEY: ${{ secrets.RS_PUBLIC_KEY }}
+          RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
+          RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
         run: python3 listenandresolve.py
         shell: bash
         continue-on-error: false
@@ -390,8 +390,8 @@ jobs:
 ### CUSTOMIZATION LISTEN AND RESOLVE
       - name: ==== Run Customization for Listen and Resolve ====
         env:
-          RENDEZVOUS_SERVERS: ${{ secrets.RENDEZVOUS_SERVERS }}
-          RS_PUBLIC_KEY: ${{ secrets.RS_PUBLIC_KEY }}
+          RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
+          RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
         run: python3 listenandresolve.py
         shell: bash
         continue-on-error: false
