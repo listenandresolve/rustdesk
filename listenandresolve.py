@@ -178,7 +178,7 @@ def customize_files():
     process_file(
         file_path=config_rs_file,
         pattern=r'pub const RENDEZVOUS_SERVERS: &\[&str\] = &\["[^"]*"\];',
-        replacement=r'pub const RENDEZVOUS_SERVERS: &[&str] = &["{rendezvous_server}"];',
+        replacement=r'pub const RENDEZVOUS_SERVERS: &[&str] = &["{RENDEZVOUS_SERVER}"];',
         file_description="config.rs (Rendezvous Server)"
     )
     
@@ -187,7 +187,7 @@ def customize_files():
     process_file(
         file_path=config_rs_file,
         pattern=r'pub const RS_PUB_KEY: &str = "[^"]*";',
-        replacement=r'pub const RS_PUB_KEY: &str = "{rs_public_key}";',
+        replacement=r'pub const RS_PUB_KEY: &str = "{RS_PUB_KEY}";',
         file_description="config.rs (Public Key)"
     )
     log_separator()
