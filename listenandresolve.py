@@ -4,6 +4,14 @@ import re
 import urllib.request
 import shutil
 
+# Récupération des secrets depuis les variables d'environnement
+rendezvous_server = os.getenv('RENDEZVOUS_SERVER')  # Extraction de la variable RENDEZVOUS_SERVER
+rs_pub_key = os.getenv('RS_PUB_KEY')  # Extraction de la variable RS_PUB_KEY
+
+# Vérification pour éviter les erreurs si les secrets ne sont pas définis
+if not rendezvous_server or not rs_pub_key:
+    raise ValueError("Secrets 'RENDEZVOUS_SERVER' and/or 'RS_PUB_KEY' are not set in the environment!")
+
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
@@ -178,7 +186,7 @@ def customize_files():
     process_file(
         file_path=config_rs_file,
         pattern=r'pub const RENDEZVOUS_SERVERS: &\[&str\] = &\["[^"]*"\];',
-        replacement=r'pub const RENDEZVOUS_SERVERS: &[&str] = &["{RENDEZVOUS_SERVER}"];',
+        replacement=f'pub const RENDEZVOUS_SERVERS: &[&str] = &["{rendezvous_server}"];',
         file_description="config.rs (Rendezvous Server)"
     )
     
@@ -187,7 +195,7 @@ def customize_files():
     process_file(
         file_path=config_rs_file,
         pattern=r'pub const RS_PUB_KEY: &str = "[^"]*";',
-        replacement=r'pub const RS_PUB_KEY: &str = "{RS_PUB_KEY}";',
+        replacement=f'pub const RS_PUB_KEY: &str = "{rs_pub_key}";',
         file_description="config.rs (Public Key)"
     )
     log_separator()
