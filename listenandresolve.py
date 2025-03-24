@@ -4,10 +4,6 @@ import re
 import urllib.request
 import shutil
 
-# Vérification pour éviter les erreurs si les secrets ne sont pas définis
-if not rendezvous_server or not rs_pub_key:
-    raise ValueError("Secrets 'RENDEZVOUS_SERVER' and/or 'RS_PUB_KEY' are not set in the environment!")
-
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 
@@ -119,9 +115,11 @@ def customize_files():
     # Détecte le répertoire du fichier script (là où il est placé)
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    # Récupération des secrets depuis les variables d'environnement
-    rendezvous_server = os.getenv('RENDEZVOUS_SERVER')  # Extraction de la variable RENDEZVOUS_SERVER
-    rs_pub_key = os.getenv('RS_PUB_KEY')  # Extraction de la variable RS_PUB_KEY
+    # Lecture des secrets depuis les variables d'environnement
+    rendezvous_server = os.getenv('RENDEZVOUS_SERVER')
+    rs_pub_key = os.getenv('RS_PUB_KEY')
+
+    # Vérification
     if not rendezvous_server or not rs_pub_key:
         raise ValueError("Secrets 'RENDEZVOUS_SERVER' and/or 'RS_PUB_KEY' are not set in the environment!")
 
@@ -185,7 +183,7 @@ def customize_files():
     )
     # Modification du serveur Rendezvous
     logging.info(f"=== CUSTOM : Rendezvous Server")
-    logging.info(f"RENDEZVOUS_SERVER defined: {'yes' if rendezvous_server else 'no'}")
+    logging.info(f"RENDEZVOUS_SERVER defined: {'YES' if rendezvous_server else 'no'}")
     process_file(
         file_path=config_rs_file,
         pattern=r'pub const RENDEZVOUS_SERVERS: &\[&str\] = &\["[^"]*"\];',
@@ -195,7 +193,7 @@ def customize_files():
     
     # Modification de la clé publique RS
     logging.info(f"=== CUSTOM : RS Public Key")
-    logging.info(f"RS_PUB_KEY defined: {'yes' if rs_pub_key else 'no'}")
+    logging.info(f"RS_PUB_KEY defined: {'YES' if rs_pub_key else 'NO'}")
     process_file(
         file_path=config_rs_file,
         pattern=r'pub const RS_PUB_KEY: &str = "[^"]*";',
