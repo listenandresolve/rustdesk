@@ -123,7 +123,7 @@ def customize_files():
     rendezvous_server = os.getenv('RENDEZVOUS_SERVER')  # Extraction de la variable RENDEZVOUS_SERVER
     rs_pub_key = os.getenv('RS_PUB_KEY')  # Extraction de la variable RS_PUB_KEY
     if not rendezvous_server or not rs_pub_key:
-    raise ValueError("Secrets 'RENDEZVOUS_SERVER' and/or 'RS_PUB_KEY' are not set in the environment!")
+        raise ValueError("Secrets 'RENDEZVOUS_SERVER' and/or 'RS_PUB_KEY' are not set in the environment!")
 
     # Télécharger les ressources en premier
     download_resources()
