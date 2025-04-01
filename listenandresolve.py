@@ -177,6 +177,8 @@ def customize_files():
         replacement=r'''pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
         let mut m = HashMap::new();
         m.insert("conn-type".to_string(), "incoming".to_string());
+        m.insert("disable-settings".to_string(), "Y".to_string());
+        m.insert("force-always-relay".to_string(), "Y".to_string());
         RwLock::new(m)
     };''',
         file_description="config.rs"
