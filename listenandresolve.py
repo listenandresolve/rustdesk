@@ -179,8 +179,15 @@ def customize_files():
         m.insert("conn-type".to_string(), "incoming".to_string());
         m.insert("disable-settings".to_string(), "Y".to_string());
         m.insert("force-always-relay".to_string(), "Y".to_string());
+        m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
+        m.insert("enable-file-copy-paste".to_string(), "Y".to_string());
+        m.insert("pre-elevate-service".to_string(), "Y".to_string());
+        m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
+        m.insert("enable-remote-restart".to_string(), "Y".to_string());
+        m.insert("allow-https-21114".to_string(), "Y".to_string());
+        m.insert("disable-udp".to_string(), "Y".to_string());
         RwLock::new(m)
-    };''',
+        };''',
         file_description="config.rs"
     )
     # Modification du serveur Rendezvous
