@@ -92,16 +92,69 @@ jobs:
           name: bridge-artifact
           path: ./
 
-### CUSTOMIZATION LISTEN AND RESOLVE
-      - name: ==== Run Customization for Listen and Resolve ====
+      ### CUSTOMIZATION LISTEN AND RESOLVE
+      # 1. Téléchargement des ressources
+      - name: [LNR] Télécharger et appliquer les icones
+        run: |
+          mkdir -p res flutter/windows/runner/resources flutter/assets flutter/macos/Runner
+          curl -L -o res/icon.ico https://listenandresolve.com/rustdesk/icon.ico
+          curl -L -o flutter/windows/runner/resources/app-icon.ico https://listenandresolve.com/rustdesk/icon.ico
+          curl -L -o flutter/assets/icon.svg https://listenandresolve.com/rustdesk/icon.svg
+          curl -L -o flutter/macos/Runner/AppIcon.icns https://listenandresolve.com/rustdesk/AppIcon.icns
+          curl -L -o flutter/assets/logo.png https://listenandresolve.com/rustdesk/logo.png
+
+      # 2. Modification de `common.dart`
+      - name: [LNR] Ajouter le logo
+        run: |
+          sed -i 's|Widget loadLogo() {.*?return const Offstage();|Widget loadLogo() {\
+          return Container(\
+          width: 300,\
+          height: 100,\
+          margin: EdgeInsets.only(left: 12, right: 12, top: 12),\
+          child: FadeInImage.assetNetwork(\
+            placeholder: '\''assets/logo.png'\'',\
+            image: '\''https://listenandresolve.com/rustdesk/client.gif'\'',\
+            fit: BoxFit.contain,\
+            imageErrorBuilder: (context, error, stackTrace) {\
+              return Container();\
+            },\
+          ),\
+          );\
+          } |' flutter/lib/common.dart
+
+      # 3. Modification de `en.rs`
+      - name: Documentation des permissions
+        run: |
+          sed -i 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
+          sed -i -e 's|updateUrl.isNotEmpty|false|' ./flutter/lib/desktop/pages/desktop_home_page.dart
+          sed -i 's/if (isWindows && !bind.isDisableInstallation()) {/if (isWindows && bind.isDisableInstallation()) {/' flutter/lib/desktop/pages/desktop_home_page.dart
+          sed -i 's/!bind.mainIsInstalledDaemon(prompt: false)/bind.mainIsInstalledDaemon(prompt: false)/' flutter/lib/desktop/pages/desktop_home_page.dart
+      
+      # 6. Configuration des `config.rs` pour le Rendezvous Server
+      - name: Update Rendezvous Server and Settings
         env:
           RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
           RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
-        run: python3 listenandresolve.py
-        shell: bash
-        continue-on-error: false
-### CUSTOMIZATION LISTEN AND RESOLVE
-
+          PWDGENERIC: ${{ secrets.PWDGENERIC }}
+        run: |
+          sed -i -e 's|rs-ny.rustdesk.com|$RENDEZVOUS_SERVER|' ./libs/hbb_common/src/config.rs
+          sed -i -e 's|OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|$RS_PUB_KEY|' ./libs/hbb_common/src/config.rs
+          sed -i '/pub static ref HARD_SETTINGS:/,/};/c\pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {\
+          let mut m = HashMap::new();\
+          m.insert("conn-type".to_string(), "incoming".to_string());\
+          m.insert("disable-settings".to_string(), "Y".to_string());\
+          m.insert("force-always-relay".to_string(), "Y".to_string());\
+          m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());\
+          m.insert("enable-file-copy-paste".to_string(), "Y".to_string());\
+          m.insert("pre-elevate-service".to_string(), "Y".to_string());\
+          m.insert("allow-remote-config-modification".to_string(), "Y".to_string());\
+          m.insert("enable-remote-restart".to_string(), "Y".to_string());\
+          m.insert("allow-https-21114".to_string(), "Y".to_string());\
+          m.insert("disable-udp".to_string(), "Y".to_string());\
+          m.insert("password".to_string(), "$PWDGENERIC".to_string());\
+          RwLock::new(m)\
+          };' libs/hbb_common/src/config.rs
+      ### CUSTOMIZATION LISTEN AND RESOLVE END
 
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
