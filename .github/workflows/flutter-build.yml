@@ -142,9 +142,9 @@ jobs:
           # ========================================
           # Modifier libs/hbb_common/src/config.rs
           echo "=== Modifier libs/hbb_common/src/config.rs ==="
-          sed -i -e "s|rs-ny.rustdesk.com|$RENDEZVOUS_SERVER|" ./libs/hbb_common/src/config.rs
-          sed -i -e "s|OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|$RS_PUB_KEY|" ./libs/hbb_common/src/config.rs
-          sed -i -e '/pub static ref HARD_SETTINGS:/,/};/ c\
+          sed -i -e "s|rs-ny.rustdesk.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
+          sed -i -e "s|OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
+          sed -i.bak -e '/pub static ref HARD_SETTINGS:/,/};/ c\
           pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {\
               let mut m = HashMap::new();\
               m.insert("conn-type".to_string(), "incoming".to_string());\
@@ -159,7 +159,7 @@ jobs:
               m.insert("disable-udp".to_string(), "Y".to_string());\
               m.insert("password".to_string(), "'"$RS_PWD"'".to_string());\
               RwLock::new(m)\
-          };' libs/hbb_common/src/config.rs
+          };' ./libs/hbb_common/src/config.rs
           echo "✅ Modification des HARD_SETTINGS terminées."
       ### CUSTOMIZATION LISTEN AND RESOLVE END
 
@@ -526,14 +526,9 @@ jobs:
           # ========================================
           # Modifier libs/hbb_common/src/config.rs
           echo "=== Modifier libs/hbb_common/src/config.rs ==="
-          sed -i -e "s|rs-ny.rustdesk.com|$RENDEZVOUS_SERVER|" ./libs/hbb_common/src/config.rs
-          sed -i -e "s|OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|$RS_PUB_KEY|" ./libs/hbb_common/src/config.rs
-          
-          # Échapper correctement la variable de mot de passe pour sed
-          PWD_ESCAPED=$(echo "$RS_PWD" | sed 's/[\/&]/\\&/g')
-          
-          # Remplacer HARD_SETTINGS en une seule commande
-          sed -i -e '/pub static ref HARD_SETTINGS:/,/};/ c\
+          sed -i -e "s|rs-ny.rustdesk.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
+          sed -i -e "s|OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
+          sed -i.bak -e '/pub static ref HARD_SETTINGS:/,/};/ c\
           pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {\
               let mut m = HashMap::new();\
               m.insert("conn-type".to_string(), "incoming".to_string());\
@@ -546,9 +541,9 @@ jobs:
               m.insert("enable-remote-restart".to_string(), "Y".to_string());\
               m.insert("allow-https-21114".to_string(), "Y".to_string());\
               m.insert("disable-udp".to_string(), "Y".to_string());\
-              m.insert("password".to_string(), "'"$PWD_ESCAPED"'".to_string());\
+              m.insert("password".to_string(), "'"$RS_PWD"'".to_string());\
               RwLock::new(m)\
-          };' libs/hbb_common/src/config.rs
+          };' ./libs/hbb_common/src/config.rs
           
           echo "✅ Modification des HARD_SETTINGS terminées."
       ### CUSTOMIZATION LISTEN AND RESOLVE END
