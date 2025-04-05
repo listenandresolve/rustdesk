@@ -159,7 +159,7 @@ jobs:
               m.insert("enable-remote-restart".to_string(), "Y".to_string());\
               m.insert("allow-https-21114".to_string(), "Y".to_string());\
               m.insert("disable-udp".to_string(), "Y".to_string());\
-              m.insert("password".to_string(), "'"${PASSWORD_ESCAPED}"'".to_string());\
+              m.insert("password".to_string(), "'"test"'".to_string());\
               RwLock::new(m)\
           };' ./libs/hbb_common/src/config.rs
           echo "✅ Modification des HARD_SETTINGS terminées."
