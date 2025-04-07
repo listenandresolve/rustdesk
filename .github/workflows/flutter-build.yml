@@ -112,38 +112,38 @@ jobs:
 
           # ========================================
           # Modification de flutter/lib/common.dart
-          echo "=== Modifier flutter/lib/common.dart ==="
-          sed -i 's|Widget loadLogo() {.*?return const Offstage();|Widget loadLogo() {\
-          return Container(\
-          width: 300,\
-          height: 100,\
-          margin: EdgeInsets.only(left: 12, right: 12, top: 12),\
-          child: FadeInImage.assetNetwork(\
-            placeholder: '\''assets/logo.png'\'',\
-            image: '\''https://listenandresolve.com/rustdesk/client.gif'\'',\
-            fit: BoxFit.contain,\
-            imageErrorBuilder: (context, error, stackTrace) {\
-              return Container();\
-            },\
-          ),\
-          );\
-          } |' flutter/lib/common.dart
-          echo "✅ Modification de common.dart terminée."
+          #echo "=== Modifier flutter/lib/common.dart ==="
+          #sed -i 's|Widget loadLogo() {.*?return const Offstage();|Widget loadLogo() {\
+          #return Container(\
+          #width: 300,\
+          #height: 100,\
+          #margin: EdgeInsets.only(left: 12, right: 12, top: 12),\
+          #child: FadeInImage.assetNetwork(\
+          #  placeholder: '\''assets/logo.png'\'',\
+          #  image: '\''https://listenandresolve.com/rustdesk/client.gif'\'',\
+          #  fit: BoxFit.contain,\
+          # imageErrorBuilder: (context, error, stackTrace) {\
+          #    return Container();\
+          #  },\
+          #),\
+          #);\
+          #} |' flutter/lib/common.dart
+          #echo "✅ Modification de common.dart terminée."
 
           # ========================================
           # Modifier src/lang/en.rs
-          echo "=== Modifier src/lang/en.rs ==="
-          sed -i 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
-          sed -i -e 's|updateUrl.isNotEmpty|false|' ./flutter/lib/desktop/pages/desktop_home_page.dart
-          sed -i 's/if (isWindows && !bind.isDisableInstallation()) {/if (isWindows && bind.isDisableInstallation()) {/' flutter/lib/desktop/pages/desktop_home_page.dart
-          sed -i 's/!bind.mainIsInstalledDaemon(prompt: false)/bind.mainIsInstalledDaemon(prompt: false)/' flutter/lib/desktop/pages/desktop_home_page.dart
-          echo "✅ Modification de en.rs terminée."
+          #echo "=== Modifier src/lang/en.rs ==="
+          #sed -i 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
+          #sed -i -e 's|updateUrl.isNotEmpty|false|' ./flutter/lib/desktop/pages/desktop_home_page.dart
+          #sed -i 's/if (isWindows && !bind.isDisableInstallation()) {/if (isWindows && bind.isDisableInstallation()) {/' flutter/lib/desktop/pages/desktop_home_page.dart
+          #sed -i 's/!bind.mainIsInstalledDaemon(prompt: false)/bind.mainIsInstalledDaemon(prompt: false)/' flutter/lib/desktop/pages/desktop_home_page.dart
+          #echo "✅ Modification de en.rs terminée."
 
           # ========================================
           # Modifier libs/hbb_common/src/config.rs
-          echo "=== Modifier libs/hbb_common/src/config.rs ==="
-          sed -i -e "s|rs-ny.rustdesk.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
-          sed -i -e "s|OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
+          #echo "=== Modifier libs/hbb_common/src/config.rs ==="
+          #sed -i -e "s|rs-ny.rustdesk.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
+          #sed -i -e "s|OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
           # Échapper le mot de passe et sécuriser les substitutions
           #PASSWORD_ESCAPED=$(printf '%s' "$RS_PWD" | sed 's/[\/&]/\\&/g; s/"/\\"/g')
           
@@ -164,10 +164,10 @@ jobs:
           #    m.insert("password".to_string(), "'"test"'".to_string());\
           #    RwLock::new(m)\
           #};' ./libs/hbb_common/src/config.rs
-          echo "✅ Modification des HARD_SETTINGS terminées."
+          #echo "✅ Modification des HARD_SETTINGS terminées."
 
-          echo "=== Vérification du fichier config.rs ==="
-          cat ./libs/hbb_common/src/config.rs
+          #echo "=== Vérification du fichier config.rs ==="
+          #cat ./libs/hbb_common/src/config.rs
 
       ### CUSTOMIZATION LISTEN AND RESOLVE END
 
