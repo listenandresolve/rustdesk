@@ -102,33 +102,33 @@ jobs:
         run: |
           # ========================================
           # Téléchargement des ressources
-          echo "=== Télécharger les icônes et logos ==="
+          echo "—— ⏳ Télécharger les icônes et logos"
           mkdir -p res flutter/windows/runner/resources flutter/assets
           curl -L -o res/icon.ico https://listenandresolve.com/rustdesk/icon.ico
           curl -L -o flutter/windows/runner/resources/app-icon.ico https://listenandresolve.com/rustdesk/icon.ico
           curl -L -o flutter/assets/icon.svg https://listenandresolve.com/rustdesk/icon.svg
           curl -L -o flutter/assets/logo.png https://listenandresolve.com/rustdesk/logo.png
-          echo "✅ Téléchargement des ressources terminées."
+          echo "—— ✅ Téléchargement des ressources terminées."
 
           # ========================================
           # Modification de flutter/lib/common.dart
-          #echo "=== Modifier flutter/lib/common.dart ==="
-          #sed -i 's|Widget loadLogo() {.*?return const Offstage();|Widget loadLogo() {\
-          #return Container(\
-          #width: 300,\
-          #height: 100,\
-          #margin: EdgeInsets.only(left: 12, right: 12, top: 12),\
-          #child: FadeInImage.assetNetwork(\
-          #  placeholder: '\''assets/logo.png'\'',\
-          #  image: '\''https://listenandresolve.com/rustdesk/client.gif'\'',\
-          #  fit: BoxFit.contain,\
-          # imageErrorBuilder: (context, error, stackTrace) {\
-          #    return Container();\
-          #  },\
-          #),\
-          #);\
-          #} |' flutter/lib/common.dart
-          #echo "✅ Modification de common.dart terminée."
+          echo "—— ⏳ Modification flutter/lib/common.dart"
+          sed -i 's|Widget loadLogo() {.*?return const Offstage();|Widget loadLogo() {\
+          return Container(\
+          width: 300,\
+          height: 100,\
+          margin: EdgeInsets.only(left: 12, right: 12, top: 12),\
+          child: FadeInImage.assetNetwork(\
+            placeholder: '\''assets/logo.png'\'',\
+            image: '\''https://listenandresolve.com/rustdesk/client.gif'\'',\
+            fit: BoxFit.contain,\
+           imageErrorBuilder: (context, error, stackTrace) {\
+              return Container();\
+            },\
+          ),\
+          );\
+          } |' flutter/lib/common.dart
+          echo "—— ✅ Modification de common.dart terminée."
 
           # ========================================
           # Modifier src/lang/en.rs
