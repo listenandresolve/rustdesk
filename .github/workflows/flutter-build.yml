@@ -112,7 +112,7 @@ jobs:
 
           # ========================================
           # Modification de flutter/lib/common.dart
-          echo "—— ➡️ Modification flutter/lib/common.dart"
+          echo "—— ➡️ Modification du logo"
           sed -i 's|Widget loadLogo() {.*?return const Offstage();|Widget loadLogo() {\
           return Container(\
           width: 300,\
@@ -132,7 +132,7 @@ jobs:
 
           # ========================================
           # Modifier src/lang/en.rs
-          #echo "—— ➡️ Modification src/lang/en.rs"
+          #echo "—— ➡️ Modification des options"
           #sed -i 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
           #sed -i -e 's|updateUrl.isNotEmpty|false|' ./flutter/lib/desktop/pages/desktop_home_page.dart
           #sed -i 's/if (isWindows && !bind.isDisableInstallation()) {/if (isWindows && bind.isDisableInstallation()) {/' flutter/lib/desktop/pages/desktop_home_page.dart
@@ -141,13 +141,14 @@ jobs:
 
           # ========================================
           # Modifier libs/hbb_common/src/config.rs
-          echo "=== Modifier libs/hbb_common/src/config.rs ==="
+          echo "—— ➡️ Modification Rendezvous + key ==="
           sed -i -e "s|rs-ny.rustdesk.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
           sed -i -e "s|OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
           #Échapper le mot de passe et sécuriser les substitutions
           #PASSWORD_ESCAPED=$(printf '%s' "$RS_PWD" | sed 's/[\/&]/\\&/g; s/"/\\"/g')
           
           # Modifier le fichier config.rs
+          echo "—— ➡️ Modification hard settings ==="
           sed -i -e '/pub static ref HARD_SETTINGS:/,/};/ c\
           pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {\
               let mut m = HashMap::new();\
