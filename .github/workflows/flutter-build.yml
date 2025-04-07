@@ -172,11 +172,11 @@ jobs:
           echo "✅ Modification des HARD_SETTINGS terminées."
       ### CUSTOMIZATION LISTEN AND RESOLVE END
 
-    - name: Afficher le contenu de config.rs
-      run: cat ./libs/hbb_common/src/config.rs
-
-    - name: Arrêter la compilation
-      run: exit 1
+      - name: Afficher le contenu de config.rs
+        run: cat ./libs/hbb_common/src/config.rs
+  
+      - name: Arrêter la compilation
+        run: exit 1
       
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
