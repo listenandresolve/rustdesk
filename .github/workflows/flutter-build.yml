@@ -149,10 +149,10 @@ jobs:
           #Échapper le mot de passe et sécuriser les substitutions
           PASSWORD_ESCAPED=$(printf '%s' "$RS_PWD" | sed 's/[\/&]/\\&/g; s/"/\\"/g')
           # Modifier le fichier config.rs
+          # Modifier le fichier config.rs
           echo "—— ➡️ Modification hard settings"
           sed -i -e 's/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new({ let mut m = HashMap::new(); m.insert("conn-type".to_string(), "incoming".to_string()); m.insert("disable-settings".to_string(), "Y".to_string()); m });/' ./libs/hbb_common/src/config.rs
           echo "✅ Modification des HARD_SETTINGS terminées."
-  
       ### CUSTOMIZATION LISTEN AND RESOLVE END
 
       - name: Install LLVM and Clang
