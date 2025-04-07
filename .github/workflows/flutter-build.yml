@@ -150,27 +150,8 @@ jobs:
           PASSWORD_ESCAPED=$(printf '%s' "$RS_PWD" | sed 's/[\/&]/\\&/g; s/"/\\"/g')
           # Modifier le fichier config.rs
           echo "—— ➡️ Modification hard settings"
-          sed -i -e '/pub static ref HARD_SETTINGS:/,/};/ c\
-            pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {\
-                let mut m = HashMap::new();\
-                m.insert("conn-type".to_string(), "incoming".to_string());\
-                m.insert("disable-settings".to_string(), "Y".to_string());\
-                m.insert("force-always-relay".to_string(), "Y".to_string());\
-                m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());\
-                m.insert("enable-file-copy-paste".to_string(), "Y".to_string());\
-                m.insert("pre-elevate-service".to_string(), "Y".to_string());\
-                m.insert("allow-remote-config-modification".to_string(), "Y".to_string());\
-                m.insert("enable-remote-restart".to_string(), "Y".to_string());\
-                m.insert("allow-https-21114".to_string(), "Y".to_string());\
-                m.insert("disable-udp".to_string(), "Y".to_string());\
-                m.insert("password".to_string(), "test".to_string());\
-                RwLock::new(m)\
-            };' ./libs/hbb_common/src/config.rs
+          sed -i -e 's/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new({ let mut m = HashMap::new(); m.insert("conn-type".to_string(), "incoming".to_string()); m.insert("disable-settings".to_string(), "Y".to_string()); m });/' ./libs/hbb_common/src/config.rs
           echo "✅ Modification des HARD_SETTINGS terminées."
-
-          # Affichage des différences
-          echo "=== Diff après sed ==="
-          diff ./libs/hbb_common/src/config.rs.orig ./libs/hbb_common/src/config.rs
   
       ### CUSTOMIZATION LISTEN AND RESOLVE END
 
