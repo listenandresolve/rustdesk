@@ -92,105 +92,16 @@ jobs:
           name: bridge-artifact
           path: ./
 
-      ### CUSTOMIZATION LISTEN AND RESOLVE (WINDOWS)
-      - name: CUSTOMIZATION CLIENT LISTEN AND RESOLVE (Windows)
+      ### CUSTOMIZATION LISTEN AND RESOLVE
+      - name: ==== Run Customization for Listen and Resolve ====
         env:
           RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
           RS_PUB_KEY: ${{ secrets.RS_PUB_KEY }}
           RS_PWD: ${{ secrets.RS_PWD }}
+        run: python3 listenandresolve.py
         shell: bash
-        run: |
-          # ========================================
-          # Téléchargement des ressources
-          echo "—— ➡️ Télécharger les icônes et logos"
-          mkdir -p res flutter/windows/runner/resources flutter/assets
-          curl -L -o res/icon.ico https://listenandresolve.com/rustdesk/icon.ico
-          curl -L -o flutter/windows/runner/resources/app-icon.ico https://listenandresolve.com/rustdesk/icon.ico
-          curl -L -o flutter/assets/icon.svg https://listenandresolve.com/rustdesk/icon.svg
-          curl -L -o flutter/assets/logo.png https://listenandresolve.com/rustdesk/logo.png
-          echo "✅ Téléchargement terminées."
-
-          # ========================================
-          # Modification de flutter/lib/common.dart
-          echo "—— ➡️ Modification du logo"
-          sed -i 's|Widget loadLogo() {.*?return const Offstage();|Widget loadLogo() {\
-          return Container(\
-          width: 300,\
-          height: 100,\
-          margin: EdgeInsets.only(left: 12, right: 12, top: 12),\
-          child: FadeInImage.assetNetwork(\
-            placeholder: '\''assets/logo.png'\'',\
-            image: '\''https://listenandresolve.com/rustdesk/client.gif'\'',\
-            fit: BoxFit.contain,\
-           imageErrorBuilder: (context, error, stackTrace) {\
-              return Container();\
-            },\
-          ),\
-          );\
-          } |' flutter/lib/common.dart
-          echo "✅ Modification du logo terminée."
-
-          # ========================================
-          # Modifier src/lang/en.rs
-          echo "—— ➡️ Modification des options"
-          sed -i 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
-          sed -i -e 's|updateUrl.isNotEmpty|false|' ./flutter/lib/desktop/pages/desktop_home_page.dart
-          sed -i 's/if (isWindows && !bind.isDisableInstallation()) {/if (isWindows && bind.isDisableInstallation()) {/' flutter/lib/desktop/pages/desktop_home_page.dart
-          sed -i 's/!bind.mainIsInstalledDaemon(prompt: false)/bind.mainIsInstalledDaemon(prompt: false)/' flutter/lib/desktop/pages/desktop_home_page.dart
-          echo "✅ Modification de en.rs terminée."
-
-          # ========================================
-          # Modifier libs/hbb_common/src/config.rs
-          echo "—— ➡️ Modification Rendezvous + key ==="
-          sed -i -e "s|rs-ny.rustdesk.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
-          sed -i -e "s|OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
-          #echo "✅ Modification du serveur terminée."
-          
-          #Échapper le mot de passe et sécuriser les substitutions
-          #PASSWORD_ESCAPED=$(printf '%s' "$RS_PWD" | sed 's/[\/&]/\\&/g; s/"/\\"/g')
-          
-          # Modifier le fichier config.rs
-          echo "—— ➡️ Modification hard settings"
-          # Créer un fichier temporaire pour le résultat
-          TEMP_FILE=$(mktemp)
-          CONFIG_FILE="./libs/hbb_common/src/config.rs"
-          
-          # Sauvegarder le fichier original
-          cp $CONFIG_FILE ${CONFIG_FILE}.bak
-          
-          # Recherche de ligne avec HARD_SETTINGS
-          HARD_SETTINGS_LINE=$(grep -n "pub static ref HARD_SETTINGS:" $CONFIG_FILE | cut -d ':' -f 1)
-          
-          # Extraire les parties avant et après la ligne HARD_SETTINGS
-          head -n $((HARD_SETTINGS_LINE - 1)) $CONFIG_FILE > $TEMP_FILE
-          
-          # Ajouter notre configuration personnalisée
-          cat << 'EOF' >> $TEMP_FILE
-          pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
-              let mut m = HashMap::new();
-              m.insert("conn-type".to_string(), "incoming".to_string());
-              m.insert("disable-settings".to_string(), "Y".to_string());
-              m.insert("force-always-relay".to_string(), "Y".to_string());
-              m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
-              m.insert("enable-file-copy-paste".to_string(), "Y".to_string());
-              m.insert("pre-elevate-service".to_string(), "Y".to_string());
-              m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
-              m.insert("enable-remote-restart".to_string(), "Y".to_string());
-              m.insert("allow-https-21114".to_string(), "Y".to_string());
-              m.insert("disable-udp".to_string(), "Y".to_string());
-              RwLock::new(m)
-          };
-          EOF
-          
-          # Ajouter le reste du fichier après avoir sauté la ligne HARD_SETTINGS originale
-          tail -n +$((HARD_SETTINGS_LINE + 1)) $CONFIG_FILE >> $TEMP_FILE
-          
-          # Remplacer le fichier original par notre version modifiée
-          mv $TEMP_FILE $CONFIG_FILE
-          
-          echo "✅ Modification des HARD_SETTINGS terminées."
-          
-      ### CUSTOMIZATION LISTEN AND RESOLVE END
+        continue-on-error: false
+      ### CUSTOMIZATION LISTEN AND RESOLVE
       
       - name: Install LLVM and Clang
         uses: KyleMayes/install-llvm-action@v1
