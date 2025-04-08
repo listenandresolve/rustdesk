@@ -151,15 +151,22 @@ jobs:
           
           # Modifier le fichier config.rs
           echo "—— ➡️ Modification hard settings"
-          # Créer un script Python qui fait la substitution de manière plus fiable
-          cat << 'EOF' > update_hard_settings.py
-          #!/usr/bin/env python3
+          # Créer un fichier temporaire pour le résultat
+          TEMP_FILE=$(mktemp)
+          CONFIG_FILE="./libs/hbb_common/src/config.rs"
           
-          with open('./libs/hbb_common/src/config.rs', 'r') as file:
-              content = file.read()
+          # Sauvegarder le fichier original
+          cp $CONFIG_FILE ${CONFIG_FILE}.bak
           
-          hard_settings_default = 'pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();'
-          hard_settings_custom = '''    pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
+          # Recherche de ligne avec HARD_SETTINGS
+          HARD_SETTINGS_LINE=$(grep -n "pub static ref HARD_SETTINGS:" $CONFIG_FILE | cut -d ':' -f 1)
+          
+          # Extraire les parties avant et après la ligne HARD_SETTINGS
+          head -n $((HARD_SETTINGS_LINE - 1)) $CONFIG_FILE > $TEMP_FILE
+          
+          # Ajouter notre configuration personnalisée
+          cat << 'EOF' >> $TEMP_FILE
+          pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
               let mut m = HashMap::new();
               m.insert("conn-type".to_string(), "incoming".to_string());
               m.insert("disable-settings".to_string(), "Y".to_string());
@@ -172,15 +179,16 @@ jobs:
               m.insert("allow-https-21114".to_string(), "Y".to_string());
               m.insert("disable-udp".to_string(), "Y".to_string());
               RwLock::new(m)
-          };'''
-          
-          modified_content = content.replace(hard_settings_default, hard_settings_custom)
-          
-          with open('./libs/hbb_common/src/config.rs', 'w') as file:
-              file.write(modified_content)
-          
-          print("✅ Modification des HARD_SETTINGS terminée.")
+          };
           EOF
+          
+          # Ajouter le reste du fichier après avoir sauté la ligne HARD_SETTINGS originale
+          tail -n +$((HARD_SETTINGS_LINE + 1)) $CONFIG_FILE >> $TEMP_FILE
+          
+          # Remplacer le fichier original par notre version modifiée
+          mv $TEMP_FILE $CONFIG_FILE
+          
+          echo "✅ Modification des HARD_SETTINGS terminées."
           
       ### CUSTOMIZATION LISTEN AND RESOLVE END
       
