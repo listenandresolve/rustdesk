@@ -164,10 +164,11 @@ jobs:
                   m.insert("enable-remote-restart".to_string(), "Y".to_string());
                   m.insert("allow-https-21114".to_string(), "Y".to_string());
                   m.insert("disable-udp".to_string(), "Y".to_string());
-                  m.insert("password".to_string(), "${RS_PWD}".to_string());
+                  m.insert("password".to_string(), "__PASSWORD_PLACEHOLDER__".to_string());
                   RwLock::new(m)
               };
           EOF
+          sed -i "s/__PASSWORD_PLACEHOLDER__/${RS_PWD}/g" hardsettings.txt
           sed -i '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r hardsettings.txt' ./libs/hbb_common/src/config.rs
           sed -i '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
           echo "✅ Modification des HARD_SETTINGS terminées."
@@ -560,10 +561,11 @@ jobs:
                   m.insert("enable-remote-restart".to_string(), "Y".to_string());
                   m.insert("allow-https-21114".to_string(), "Y".to_string());
                   m.insert("disable-udp".to_string(), "Y".to_string());
-                  m.insert("password".to_string(), "${RS_PWD}".to_string());
+                  m.insert("password".to_string(), "__PASSWORD_PLACEHOLDER__".to_string());
                   RwLock::new(m)
               };
           EOF
+          sed -i '' "s/__PASSWORD_PLACEHOLDER__/${RS_PWD}/g" hardsettings.txt
           sed -i '' '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r hardsettings.txt' ./libs/hbb_common/src/config.rs
           sed -i '' '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
           echo "✅ Modification des HARD_SETTINGS terminées."
