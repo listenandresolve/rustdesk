@@ -311,13 +311,13 @@ jobs:
         shell: bash
 
       - name: replace flutter icons
+        continue-on-error: true
         run: |
           cd ./flutter
           #flutter pub upgrade win32
           flutter pub get
           flutter pub run flutter_launcher_icons
           cd ..
-          magick ./res/icon.png ./rustdesk/data/flutter_assets/assets/icon.svg
 
       - name: Build rustdesk
         run: |
