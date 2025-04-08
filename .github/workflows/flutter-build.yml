@@ -133,27 +133,24 @@ jobs:
           # ========================================
           # Modification de flutter/lib/common.dart
           echo "🟠 Ajout du logo"
-          curl -L -o flutter/assets/logo.png https://listenandresolve.com/rustdesk/logo.png
-          cat << 'EOF' > custom_logo.txt
-          Widget loadLogo() {
-            return Container(
-              width: 300,
-              height: 100,
-              margin: EdgeInsets.only(left: 12, right: 12, top: 12),
-              child: FadeInImage.assetNetwork(
-                placeholder: 'assets/logo.png',
-                image: 'https://listenandresolve.com/rustdesk/client.gif',
-                fit: BoxFit.contain,
-                imageErrorBuilder: (context, error, stackTrace) {
-                  return Container();
-                },
-              ),
-            );
+          sed -i -E '
+          /Widget loadLogo\(\) \{/,/\}/c\
+          Widget loadLogo() {\
+              return Container(\
+              width: 300,\
+              height: 100,\
+              margin: EdgeInsets.only(left: 12, right: 12, top: 12),\
+              child: FadeInImage.assetNetwork(\
+                placeholder: '\''assets/logo.png'\'', // Placeholder image while loading\
+                image: '\''https://listenandresolve.com/rustdesk/client.gif'\'', // URL of the logo\
+                fit: BoxFit.contain,\
+                imageErrorBuilder: (context, error, stackTrace) {\
+                  return Container(); // Handle image loading error\
+                },\
+              ),\
+            );\
           }
-          EOF
-
-          # Effectuer la modification
-          sed -i ':a;N;$!ba;s/Widget loadLogo() {.*return const Offstage();}/`cat custom_logo.txt`/' flutter/lib/common.dart
+          ' flutter/lib/common.dart
           
           # Vérification de la modification
           if grep -q "https://listenandresolve.com/rustdesk/client.gif" flutter/lib/common.dart; then
