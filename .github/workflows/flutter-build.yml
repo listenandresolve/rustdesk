@@ -136,13 +136,13 @@ jobs:
           sed -i -E '
           /Widget loadLogo\(\) \{/,/\}/c\
           Widget loadLogo() {\
-              return Container(\
+            return Container(\
               width: 300,\
               height: 100,\
               margin: EdgeInsets.only(left: 12, right: 12, top: 12),\
               child: FadeInImage.assetNetwork(\
-                placeholder: '\''assets/logo.png'\'', // Placeholder image while loading\
-                image: '\''https://listenandresolve.com/rustdesk/client.gif'\'', // URL of the logo\
+                placeholder: "assets/logo.png", // Placeholder image while loading\
+                image: "https://listenandresolve.com/rustdesk/client.gif", // URL of the logo\
                 fit: BoxFit.contain,\
                 imageErrorBuilder: (context, error, stackTrace) {\
                   return Container(); // Handle image loading error\
