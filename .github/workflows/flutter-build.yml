@@ -133,24 +133,35 @@ jobs:
           # ========================================
           # Modification de flutter/lib/common.dart
           echo "🟠 Ajout du logo"
-          sed -i -E '
-          /Widget loadLogo\(\) \{/,/\}/c\
-          Widget loadLogo() {\
-            return Container(\
-              width: 300,\
-              height: 100,\
-              margin: EdgeInsets.only(left: 12, right: 12, top: 12),\
-              child: FadeInImage.assetNetwork(\
-                placeholder: "assets/logo.png", // Placeholder image while loading\
-                image: "https://listenandresolve.com/rustdesk/client.gif", // URL of the logo\
-                fit: BoxFit.contain,\
-                imageErrorBuilder: (context, error, stackTrace) {\
-                  return Container(); // Handle image loading error\
-                },\
-              ),\
-            );\
+          # Création d'un fichier temporaire contenant le nouveau code
+          cat > /tmp/new_logo_function.txt << 'EOF'
+          Widget loadLogo() {
+            return Container(
+              width: 300,
+              height: 100,
+              margin: EdgeInsets.only(left: 12, right: 12, top: 12),
+              child: FadeInImage.assetNetwork(
+                placeholder: 'assets/logo.png', // Placeholder image while loading
+                image: 'https://listenandresolve.com/rustdesk/client.gif', // URL of the logo
+                fit: BoxFit.contain,
+                imageErrorBuilder: (context, error, stackTrace) {
+                  return Container(); // Handle image loading error
+                },
+              ),
+            );
           }
-          ' flutter/lib/common.dart
+          EOF
+          
+          # Suppression de l'ancienne fonction et insertion de la nouvelle
+          awk '
+          BEGIN { printing = 1 }
+          /Widget loadLogo\(\) \{/ { printing = 0; system("cat /tmp/new_logo_function.txt"); }
+          /^}$/ && printing == 0 { printing = 1; next; }
+          printing == 1 { print }
+          ' flutter/lib/common.dart > flutter/lib/common.dart.new
+          
+          # Remplacement du fichier original
+          mv flutter/lib/common.dart.new flutter/lib/common.dart
           
           # Vérification de la modification
           if grep -q "https://listenandresolve.com/rustdesk/client.gif" flutter/lib/common.dart; then
@@ -160,9 +171,6 @@ jobs:
             echo "Vérifiez le fichier flutter/lib/common.dart"
             exit 1
           fi
-          
-          echo -ne "✅ Done."
-          echo ""
           
           # ========================================
           # Modifier src/lang/en.rs
