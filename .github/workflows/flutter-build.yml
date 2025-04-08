@@ -151,9 +151,15 @@ jobs:
           
           # Modifier le fichier config.rs
           echo "—— ➡️ Modification hard settings"
-          # Créer un fichier temporaire contenant les nouveaux hard settings
-          cat << 'EOF' > hardsettings.txt
-          pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
+          # Créer un script Python qui fait la substitution de manière plus fiable
+          cat << 'EOF' > update_hard_settings.py
+          #!/usr/bin/env python3
+          
+          with open('./libs/hbb_common/src/config.rs', 'r') as file:
+              content = file.read()
+          
+          hard_settings_default = 'pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();'
+          hard_settings_custom = '''    pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
               let mut m = HashMap::new();
               m.insert("conn-type".to_string(), "incoming".to_string());
               m.insert("disable-settings".to_string(), "Y".to_string());
@@ -166,13 +172,16 @@ jobs:
               m.insert("allow-https-21114".to_string(), "Y".to_string());
               m.insert("disable-udp".to_string(), "Y".to_string());
               RwLock::new(m)
-          };
+          };'''
+          
+          modified_content = content.replace(hard_settings_default, hard_settings_custom)
+          
+          with open('./libs/hbb_common/src/config.rs', 'w') as file:
+              file.write(modified_content)
+          
+          print("✅ Modification des HARD_SETTINGS terminée.")
           EOF
           
-          # Utiliser Perl pour remplacer la ligne existante par le nouveau contenu
-          perl -0777 -i -pe 's/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);/`cat hardsettings.txt`/e' ./libs/hbb_common/src/config.rs
-          
-          echo "✅ Modification des HARD_SETTINGS terminées."
       ### CUSTOMIZATION LISTEN AND RESOLVE END
       
       - name: Install LLVM and Clang
