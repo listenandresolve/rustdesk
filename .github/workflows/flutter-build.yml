@@ -162,7 +162,7 @@ jobs:
           fi
           
           echo -ne "✅ Done."
-          echo "
+          echo ""
           
           # ========================================
           # Modifier src/lang/en.rs
