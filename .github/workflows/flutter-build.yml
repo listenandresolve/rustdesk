@@ -151,24 +151,27 @@ jobs:
           
           # Modifier le fichier config.rs
           echo "—— ➡️ Modification hard settings"
+          # Créer un fichier temporaire contenant les nouveaux hard settings
           cat << 'EOF' > hardsettings.txt
-              pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
-                let mut m = HashMap::new();
-                m.insert("conn-type".to_string(), "incoming".to_string());
-                m.insert("disable-settings".to_string(), "Y".to_string());
-                m.insert("force-always-relay".to_string(), "Y".to_string());
-                m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
-                m.insert("enable-file-copy-paste".to_string(), "Y".to_string());
-                m.insert("pre-elevate-service".to_string(), "Y".to_string());
-                m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
-                m.insert("enable-remote-restart".to_string(), "Y".to_string());
-                m.insert("allow-https-21114".to_string(), "Y".to_string());
-                m.insert("disable-udp".to_string(), "Y".to_string());
-                RwLock::new(m)
-              };
+          pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
+              let mut m = HashMap::new();
+              m.insert("conn-type".to_string(), "incoming".to_string());
+              m.insert("disable-settings".to_string(), "Y".to_string());
+              m.insert("force-always-relay".to_string(), "Y".to_string());
+              m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
+              m.insert("enable-file-copy-paste".to_string(), "Y".to_string());
+              m.insert("pre-elevate-service".to_string(), "Y".to_string());
+              m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
+              m.insert("enable-remote-restart".to_string(), "Y".to_string());
+              m.insert("allow-https-21114".to_string(), "Y".to_string());
+              m.insert("disable-udp".to_string(), "Y".to_string());
+              RwLock::new(m)
+          };
           EOF
-          sed -i '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r hardsettings.txt' ./libs/hbb_common/src/config.rs
-          sed -i '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
+          
+          # Utiliser Perl pour remplacer la ligne existante par le nouveau contenu
+          perl -0777 -i -pe 's/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);/`cat hardsettings.txt`/e' ./libs/hbb_common/src/config.rs
+          
           echo "✅ Modification des HARD_SETTINGS terminées."
       ### CUSTOMIZATION LISTEN AND RESOLVE END
       
