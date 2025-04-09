@@ -589,7 +589,9 @@ jobs:
           # Copy icon to Flutter assets
           cp ./res/icon.png ./flutter/assets/icon.png
           
-          # Convert PNG to SVG using potrace
+          # Install Magick and convert PNG to SVG using potrace
+          brew install imagemagick potrace nasm cmake gcc wget ninja
+          echo "$(brew --prefix imagemagick)/bin" >> $GITHUB_PATH
           magick ./res/icon.png -flatten ./temp_icon.pbm
           potrace --svg -o ./flutter/assets/icon.svg ./temp_icon.pbm
           cp ./flutter/assets/icon.svg ./rustdesk/data/flutter_assets/assets/icon.svg
