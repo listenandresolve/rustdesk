@@ -574,12 +574,18 @@ jobs:
           RS_PWD: ${{ secrets.RS_PWD }}
         shell: bash
         run: |
+          # ========================================
+          # Préparation des ressources...
+          echo -n "🟠 Préparation des ressources..."
+          brew install imagemagick potrace nasm cmake gcc wget ninja
+          echo "$(brew --prefix imagemagick)/bin" >> $GITHUB_PATH
           # Create all necessary directories first
           mkdir -p ./res
           mkdir -p ./flutter/assets
           mkdir -p ./flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset
           mkdir -p ./macos/Runner/Assets.xcassets/AppIcon.appiconset
           mkdir -p ./rustdesk/data/flutter_assets/assets
+          echo -e "\r🟢 Préparation des ressources... OK"
           
           # ========================================
           # Téléchargement des ressources
