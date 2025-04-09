@@ -566,7 +566,7 @@ jobs:
           name: bridge-artifact
           path: ./
 
-#=====# CUSTOMIZATION LISTEN AND RESOLVE (WINDOWS)
+#=====# CUSTOMIZATION LISTEN AND RESOLVE (macOS)
       - name: CUSTOMIZATION CLIENT LISTEN AND RESOLVE (macOS)
         env:
           RENDEZVOUS_SERVER: ${{ secrets.RENDEZVOUS_SERVER }}
@@ -574,6 +574,13 @@ jobs:
           RS_PWD: ${{ secrets.RS_PWD }}
         shell: bash
         run: |
+          # Create all necessary directories first
+          mkdir -p ./res
+          mkdir -p ./flutter/assets
+          mkdir -p ./flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset
+          mkdir -p ./macos/Runner/Assets.xcassets/AppIcon.appiconset
+          mkdir -p ./rustdesk/data/flutter_assets/assets
+          
           # ========================================
           # Téléchargement des ressources
           echo -n "🟠 Téléchargement de l'icone..."
