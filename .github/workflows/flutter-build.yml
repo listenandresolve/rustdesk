@@ -577,7 +577,7 @@ jobs:
           # ========================================
           # Préparation des ressources...
           echo -n "🟠 Préparation des ressources..."
-          brew install imagemagick potrace nasm cmake gcc wget ninja
+          brew install imagemagick
           echo "$(brew --prefix imagemagick)/bin" >> $GITHUB_PATH
           # Create all necessary directories first
           mkdir -p ./res
