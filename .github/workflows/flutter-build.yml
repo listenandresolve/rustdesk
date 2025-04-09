@@ -136,32 +136,36 @@ jobs:
           
           # ========================================
           # Modification de flutter/lib/common.dart
-          echo -n "🟠 Ajout du logo Listen and Resolve..."
-          sed -i '/Widget loadLogo() {/,/}/c\
-          Widget loadLogo() {\
-            return Container(\
-              width: 300,\
-              height: 100,\
-              margin: EdgeInsets.only(left: 12, right: 12, top: 12),\
-              child: FadeInImage.assetNetwork(\
-                placeholder: '"'"'assets/logo.png'"'"', \
-                image: '"'"'https://listenandresolve.com/rustdesk/client.gif'"'"', \
-                fit: BoxFit.contain,\
-                imageErrorBuilder: (context, error, stackTrace) {\
-                  return Container(); \
-                },\
-              ),\
-            );\
-          }' flutter/lib/common.dart
+          echo "🟠 Ajout du logo"
+          # Création d'un fichier temporaire contenant le nouveau code
+          cat > /tmp/new_logo_function.txt << 'EOF'
+          Widget loadLogo() {
+            return Container(
+              width: 300,
+              height: 100,
+              margin: EdgeInsets.only(left: 12, right: 12, top: 12),
+              child: FadeInImage.assetNetwork(
+                placeholder: 'assets/logo.png', // Placeholder image while loading
+                image: 'https://listenandresolve.com/rustdesk/client.gif', // URL of the logo
+                fit: BoxFit.contain,
+                imageErrorBuilder: (context, error, stackTrace) {
+                  return Container(); // Handle image loading error
+                },
+              ),
+            );
+          }
+          EOF
           
-          # Vérification de la modification
-          if grep -q "https://listenandresolve.com/rustdesk/client.gif" flutter/lib/common.dart; then
-            echo -e "\r🟢 Ajout du logo Listen and Resolve... OK"
-            echo "—————"
-          else
-            echo -e "\r❌ Ajout du logo Listen and Resolve... ERREUR"
-            exit 1
-          fi
+          # Suppression de l'ancienne fonction et insertion de la nouvelle
+          awk '
+          BEGIN { printing = 1 }
+          /Widget loadLogo\(\) \{/ { printing = 0; system("cat /tmp/new_logo_function.txt"); }
+          /^}$/ && printing == 0 { printing = 1; next; }
+          printing == 1 { print }
+          ' flutter/lib/common.dart > flutter/lib/common.dart.new
+          
+          # Remplacement du fichier original
+          mv flutter/lib/common.dart.new flutter/lib/common.dart
           
           # ========================================
           # Modifier src/lang/en.rs
@@ -307,7 +311,6 @@ jobs:
         continue-on-error: true
         run: |
           cd ./flutter
-          #flutter pub upgrade win32
           flutter pub get
           flutter pub run flutter_launcher_icons
           cd ..
