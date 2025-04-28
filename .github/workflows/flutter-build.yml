@@ -170,16 +170,6 @@ jobs:
           
           # Remplacement du fichier original
           mv flutter/lib/common.dart.new flutter/lib/common.dart
-          
-          # ========================================
-          # Modifier src/lang/en.rs
-          echo -n "🟠 Configuration de certaines options..."
-          sed -i 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
-          sed -i -e 's|updateUrl.isNotEmpty|false|' ./flutter/lib/desktop/pages/desktop_home_page.dart
-          sed -i 's/if (isWindows && !bind.isDisableInstallation()) {/if (isWindows && bind.isDisableInstallation()) {/' flutter/lib/desktop/pages/desktop_home_page.dart
-          sed -i 's/!bind\.mainIsInstalledDaemon(prompt: false)/bind.mainIsInstalledDaemon(prompt: false)/g' flutter/lib/desktop/pages/desktop_home_page.dart
-          echo -e "\r🟢 Configuration de certaines options... OK"
-          echo "—————"
 
           # ========================================
           # Modifier libs/hbb_common/src/config.rs
@@ -194,18 +184,23 @@ jobs:
           # ========================================
           # Modifier le fichier config.rs
           echo -n "🟠 Configuration des Hard Settings..."
+          sed -i 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
           cat << 'EOF' > hardsettings.txt
               pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
                   m.insert("conn-type".to_string(), "incoming".to_string());
-                  m.insert("disable-settings".to_string(), "Y".to_string());
                   m.insert("force-always-relay".to_string(), "Y".to_string());
+                  m.insert("disable-settings".to_string(), "Y".to_string());
+                  m.insert("disable-account".to_string(), "Y".to_string());
+                  m.insert("disable-installation".to_string(), "Y".to_string());
+                  m.insert("allow-https-21114".to_string(), "Y".to_string());
                   m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
+                  m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
+                  m.insert("allow-logon-screen-password".to_string(), "Y".to_string());
+                  m.insert("allow-remote-cm-modification".to_string(), "Y".to_string());
+                  m.insert("enable-remote-restart".to_string(), "Y".to_string());
                   m.insert("enable-file-copy-paste".to_string(), "Y".to_string());
                   m.insert("pre-elevate-service".to_string(), "Y".to_string());
-                  m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
-                  m.insert("enable-remote-restart".to_string(), "Y".to_string());
-                  m.insert("allow-https-21114".to_string(), "Y".to_string());
                   m.insert("disable-udp".to_string(), "Y".to_string());
                   m.insert("password".to_string(), "__PASSWORD_PLACEHOLDER__".to_string());
                   RwLock::new(m)
@@ -736,15 +731,19 @@ jobs:
               pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
                   m.insert("conn-type".to_string(), "incoming".to_string());
-                  m.insert("disable-settings".to_string(), "Y".to_string());
                   m.insert("force-always-relay".to_string(), "Y".to_string());
-                  m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
-                  m.insert("enable-file-copy-paste".to_string(), "Y".to_string());
-                  m.insert("pre-elevate-service".to_string(), "Y".to_string());
-                  m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
-                  m.insert("enable-remote-restart".to_string(), "Y".to_string());
+                  m.insert("disable-settings".to_string(), "Y".to_string());
+                  m.insert("disable-account".to_string(), "Y".to_string());
+                  m.insert("disable-installation".to_string(), "Y".to_string());
                   m.insert("allow-https-21114".to_string(), "Y".to_string());
+                  m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
+                  m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
+                  m.insert("allow-logon-screen-password".to_string(), "Y".to_string());
+                  m.insert("allow-remote-cm-modification".to_string(), "Y".to_string());
+                  m.insert("enable-remote-restart".to_string(), "Y".to_string());
+                  m.insert("enable-file-copy-paste".to_string(), "Y".to_string());
                   m.insert("disable-udp".to_string(), "Y".to_string());
+                  m.insert("hide-help-cards".to_string(), "Y".to_string());
                   m.insert("password".to_string(), "__PASSWORD_PLACEHOLDER__".to_string());
                   RwLock::new(m)
               };
