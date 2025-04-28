@@ -710,8 +710,7 @@ jobs:
           echo -n "🟠 Configuration de certaines options..."
           sed -i '' 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
           sed -i '' -e 's|updateUrl.isNotEmpty|false|' ./flutter/lib/desktop/pages/desktop_home_page.dart
-          sed -i '' 's/if (isWindows && !bind.isDisableInstallation()) {/if (isWindows && bind.isDisableInstallation()) {/' flutter/lib/desktop/pages/desktop_home_page.dart
-          sed -i '' 's/!bind\.mainIsInstalledDaemon(prompt: false)/bind.mainIsInstalledDaemon(prompt: false)/g' flutter/lib/desktop/pages/desktop_home_page.dart          echo -e "\r🟢 Configuration de certaines options... OK"
+          echo -e "\r🟢 Configuration de certaines options... OK"
           echo "—————"
 
           # ========================================
