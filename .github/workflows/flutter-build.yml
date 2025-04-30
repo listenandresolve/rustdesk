@@ -107,9 +107,8 @@ jobs:
           # ========================================
           # Téléchargement des ressources
           echo -n "🟠 Téléchargement de l'icone..."
-          curl -L -o ./res/icon.png https://listenandresolve.com/rustdesk/icon.png
+          curl -s -o ./res/icon.png https://listenandresolve.com/rustdesk/icon.png
           cp ./res/icon.png ./flutter/assets/icon.png
-          echo "✅ Done."
           echo -e "\r🟢 Téléchargement de l'icone... OK"
           echo "_____"
 
@@ -323,6 +322,14 @@ jobs:
           fi
           head -n 100 "${VCPKG_ROOT}/buildtrees/ffmpeg/build-${{ matrix.job.vcpkg-triplet }}-rel-out.log" || true
         shell: bash
+
+      - name: replace flutter icons
+        continue-on-error: true
+        run: |
+          cd ./flutter
+          flutter pub get
+          flutter pub run flutter_launcher_icons
+          cd ..
 
       - name: Build rustdesk
         run: |
@@ -605,8 +612,8 @@ jobs:
           # ========================================
           # Téléchargement des ressources
           echo -n "🟠 Téléchargement de l'icone..."
-          curl -L -o ./res/icon.png https://listenandresolve.com/rustdesk/icon.png
-          curl -L -o ./flutter/assets/icon.svg https://listenandresolve.com/rustdesk/icon.svg
+          curl -s -o ./res/icon.png https://listenandresolve.com/rustdesk/icon.png
+          curl -s -o ./flutter/assets/icon.svg https://listenandresolve.com/rustdesk/icon.svg
           cp ./res/icon.png ./flutter/assets/icon.png
           cp ./flutter/assets/icon.svg ./rustdesk/data/flutter_assets/assets/icon.svg
           echo -e "\r🟢 Téléchargement de l'icone... OK"
@@ -743,7 +750,35 @@ jobs:
 
           # ========================================
           # Modifier le fichier config.rs
+          echo -n "🟠 Configuration des Settings..."
+          cat << 'EOF' > builtinsettings.txt
+              pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = {
+                  let mut m = HashMap::new();
+                  m.insert("access-mode".to_string(), "full".to_string());
+                  m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
+                  m.insert("enable-lan-discovery".to_string(), "Y".to_string());
+                  m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
+                  m.insert("follow-remote-window".to_string(), "Y".to_string());
+                  m.insert("displays-as-individual-windows".to_string(), "Y".to_string());
+                  m.insert("pre-elevate-service".to_string(), "Y".to_string());
+                  m.insert("allow-remote-cm-modification".to_string(), "Y".to_string());
+                  m.insert("hide-help-cards".to_string(), "Y".to_string());
+                  m.insert("allow-https-21114".to_string(), "Y".to_string());
+                  m.insert("allow-logon-screen-password".to_string(), "Y".to_string());
+                  m.insert("enable-remote-restart".to_string(), "Y".to_string());
+                  RwLock::new(m)
+              };
+          EOF
+          
+          sed -i '' '/pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r builtinsettings.txt' ./libs/hbb_common/src/config.rs
+          sed -i '' '/pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
+          echo -e "\r🟢 Configuration des Settings... OK"
+          echo "—————"
+
+          # ========================================
+          # Modifier le fichier config.rs
           echo -n "🟠 Configuration des Hard Settings..."
+          sed -i 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
           cat << 'EOF' > hardsettings.txt
               pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
@@ -752,15 +787,6 @@ jobs:
                   m.insert("disable-settings".to_string(), "Y".to_string());
                   m.insert("disable-account".to_string(), "Y".to_string());
                   m.insert("disable-installation".to_string(), "Y".to_string());
-                  m.insert("allow-https-21114".to_string(), "Y".to_string());
-                  m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
-                  m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
-                  m.insert("allow-logon-screen-password".to_string(), "Y".to_string());
-                  m.insert("allow-remote-cm-modification".to_string(), "Y".to_string());
-                  m.insert("enable-remote-restart".to_string(), "Y".to_string());
-                  m.insert("enable-file-copy-paste".to_string(), "Y".to_string());
-                  m.insert("disable-udp".to_string(), "Y".to_string());
-                  m.insert("hide-help-cards".to_string(), "Y".to_string());
                   m.insert("password".to_string(), "__PASSWORD_PLACEHOLDER__".to_string());
                   RwLock::new(m)
               };
