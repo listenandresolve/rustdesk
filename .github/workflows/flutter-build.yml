@@ -778,7 +778,7 @@ jobs:
           # ========================================
           # Modifier le fichier config.rs
           echo -n "🟠 Configuration des Hard Settings..."
-          sed -i 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
+          sed -i '' 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
           cat << 'EOF' > hardsettings.txt
               pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
