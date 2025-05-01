@@ -9,14 +9,7 @@ on:
       upload-tag:
         type: string
         default: "nightly"
-
-# NOTE: F-Droid builder script 'flutter/build_fdroid.sh' reads environment
-# variables from this workflow!
-#
-# It does NOT read build steps, however, so please fix 'flutter/build_fdroid.sh
-# whenever you add changes to Android CI build action ('build-rustdesk-android')
-# in this file!
-
+        
 env:
   SCITER_RUST_VERSION: "1.75" # https://github.com/rustdesk/rustdesk/discussions/7503, also 1.78 has ABI change which causes our sciter version not working, https://blog.rust-lang.org/2024/03/30/i128-layout-update.html
   RUST_VERSION: "1.75" # sciter failed on m1 with 1.78 because of https://blog.rust-lang.org/2024/03/30/i128-layout-update.html
@@ -182,9 +175,9 @@ jobs:
 
           # ========================================
           # Modifier le fichier config.rs
-          echo -n "🟠 Configuration des Settings..."
-          cat << 'EOF' > builtinsettings.txt
-              pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = {
+          echo -n "🟠 Configuration des Overwrite Settings..."
+          cat << 'EOF' > overwritesettings.txt
+              pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
                   m.insert("access-mode".to_string(), "full".to_string());
                   m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
@@ -192,19 +185,33 @@ jobs:
                   m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
                   m.insert("follow-remote-window".to_string(), "Y".to_string());
                   m.insert("displays-as-individual-windows".to_string(), "Y".to_string());
-                  m.insert("pre-elevate-service".to_string(), "Y".to_string());
                   m.insert("allow-remote-cm-modification".to_string(), "Y".to_string());
-                  m.insert("hide-help-cards".to_string(), "Y".to_string());
-                  m.insert("allow-https-21114".to_string(), "Y".to_string());
-                  m.insert("allow-logon-screen-password".to_string(), "Y".to_string());
                   m.insert("enable-remote-restart".to_string(), "Y".to_string());
+                  RwLock::new(m)
+              };
+          EOF
+          
+          sed -i '/pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r overwritesettings.txt' ./libs/hbb_common/src/config.rs
+          sed -i '/pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
+          echo -e "\r🟢 Configuration des Overwrite Settings... OK"
+          echo "—————"
+          
+          # ========================================
+          # Modifier le fichier config.rs
+          echo -n "🟠 Configuration des Builtin Settings..."
+          cat << 'EOF' > builtinsettings.txt
+              pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = {
+                  let mut m = HashMap::new();
+                  m.insert("allow-logon-screen-password".to_string(), "Y".to_string());
+                  m.insert("allow-https-21114".to_string(), "Y".to_string());
+                  m.insert("hide-help-cards".to_string(), "Y".to_string());
                   RwLock::new(m)
               };
           EOF
           
           sed -i '/pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r builtinsettings.txt' ./libs/hbb_common/src/config.rs
           sed -i '/pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
-          echo -e "\r🟢 Configuration des Settings... OK"
+          echo -e "\r🟢 Configuration des Builtin Settings... OK"
           echo "—————"
 
           # ========================================
@@ -750,9 +757,9 @@ jobs:
 
           # ========================================
           # Modifier le fichier config.rs
-          echo -n "🟠 Configuration des Settings..."
-          cat << 'EOF' > builtinsettings.txt
-              pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = {
+          echo -n "🟠 Configuration des Overwrite Settings..."
+          cat << 'EOF' > overwritesettings.txt
+              pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
                   m.insert("access-mode".to_string(), "full".to_string());
                   m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
@@ -760,12 +767,26 @@ jobs:
                   m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
                   m.insert("follow-remote-window".to_string(), "Y".to_string());
                   m.insert("displays-as-individual-windows".to_string(), "Y".to_string());
-                  m.insert("pre-elevate-service".to_string(), "Y".to_string());
                   m.insert("allow-remote-cm-modification".to_string(), "Y".to_string());
-                  m.insert("hide-help-cards".to_string(), "Y".to_string());
-                  m.insert("allow-https-21114".to_string(), "Y".to_string());
-                  m.insert("allow-logon-screen-password".to_string(), "Y".to_string());
                   m.insert("enable-remote-restart".to_string(), "Y".to_string());
+                  RwLock::new(m)
+              };
+          EOF
+          
+          sed -i '' '/pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r overwritesettings.txt' ./libs/hbb_common/src/config.rs
+          sed -i '' '/pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
+          echo -e "\r🟢 Configuration des Overwrite Settings... OK"
+          echo "—————"
+          
+          # ========================================
+          # Modifier le fichier config.rs
+          echo -n "🟠 Configuration des Builtin Settings..."
+          cat << 'EOF' > builtinsettings.txt
+              pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = {
+                  let mut m = HashMap::new();
+                  m.insert("allow-logon-screen-password".to_string(), "Y".to_string());
+                  m.insert("allow-https-21114".to_string(), "Y".to_string());
+                  m.insert("hide-help-cards".to_string(), "Y".to_string());
                   RwLock::new(m)
               };
           EOF
