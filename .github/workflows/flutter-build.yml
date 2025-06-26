@@ -185,6 +185,8 @@ jobs:
                   m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
                   m.insert("follow-remote-window".to_string(), "Y".to_string());
                   m.insert("displays-as-individual-windows".to_string(), "Y".to_string());
+                  m.insert("show-remote-cursor".to_string(), "Y".to_string());
+                  m.insert("view-style".to_string(), "adaptative".to_string());
                   m.insert("allow-remote-cm-modification".to_string(), "Y".to_string());
                   m.insert("enable-remote-restart".to_string(), "Y".to_string());
                   RwLock::new(m)
@@ -767,6 +769,8 @@ jobs:
                   m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
                   m.insert("follow-remote-window".to_string(), "Y".to_string());
                   m.insert("displays-as-individual-windows".to_string(), "Y".to_string());
+                  m.insert("show-remote-cursor".to_string(), "Y".to_string());
+                  m.insert("view-style".to_string(), "adaptative".to_string());
                   m.insert("allow-remote-cm-modification".to_string(), "Y".to_string());
                   m.insert("enable-remote-restart".to_string(), "Y".to_string());
                   RwLock::new(m)
