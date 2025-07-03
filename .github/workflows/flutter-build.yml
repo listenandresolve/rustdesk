@@ -612,6 +612,8 @@ jobs:
           echo "$(brew --prefix imagemagick)/bin" >> $GITHUB_PATH
           # Create all necessary directories first
           mkdir -p ./res
+          mkdir -p ./flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset
+          mkdir -p ./macos/Runner/Assets.xcassets/AppIcon.appiconset
           mkdir -p ./flutter/assets
           mkdir -p ./rustdesk/data/flutter_assets/assets
           echo -e "\r🟢 Préparation des ressources... OK"
