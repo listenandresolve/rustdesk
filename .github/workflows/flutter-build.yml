@@ -613,95 +613,37 @@ jobs:
           # Create all necessary directories first
           mkdir -p ./res
           mkdir -p ./flutter/assets
-          mkdir -p ./flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset
-          mkdir -p ./macos/Runner/Assets.xcassets/AppIcon.appiconset
           mkdir -p ./rustdesk/data/flutter_assets/assets
           echo -e "\r🟢 Préparation des ressources... OK"
           
           # ========================================
           # Téléchargement des ressources
-          echo -n "🟠 Téléchargement de l'icone..."
-          curl -s -o ./res/icon.png https://listenandresolve.com/rustdesk/icon.png
-          curl -s -o ./flutter/assets/icon.svg https://listenandresolve.com/rustdesk/icon.svg
-          cp ./res/icon.png ./flutter/assets/icon.png
-          cp ./flutter/assets/icon.svg ./rustdesk/data/flutter_assets/assets/icon.svg
-          echo -e "\r🟢 Téléchargement de l'icone... OK"
+          echo -n "🟠 Téléchargement des ressources..."
+          # Télécharger l'icône .icns prête à l'emploi
+          curl -s -o ./flutter/macos/Runner/AppIcon.icns https://listenandresolve.com/rustdesk/AppIcon.icns
+          # Télécharger le PNG haute qualité
+          curl -s -o ./flutter/assets/icon.png https://listenandresolve.com/rustdesk/icon.png
+          echo -e "\r🟢 Téléchargement des ressources... OK"
           echo "_____"
 
           # ========================================
           # Créer toutes les tailles d'icônes nécessaires
           echo -n "🟠 Création des icones..."
-          # Copy icon to Flutter assets
-          cp ./res/icon.png ./flutter/assets/icon.png
-          
-          # Create macOS app icons
-          magick ./res/icon.png -resize 16x16 "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png"
-          magick ./res/icon.png -resize 32x32 "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png"
-          magick ./res/icon.png -resize 64x64 "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png"
-          magick ./res/icon.png -resize 128x128 "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png"
-          magick ./res/icon.png -resize 256x256 "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png"
-          magick ./res/icon.png -resize 512x512 "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png"
-          magick ./res/icon.png -resize 1024x1024 "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png"
+          # Copier l'icône .icns aux deux emplacements
+          cp ./flutter/macos/Runner/AppIcon.icns ./macos/Runner/AppIcon.icns
 
-          # Create macOS specific icons
-          magick ./res/icon.png -resize 128x128 ./res/mac-icon.png
-          
-          # Create dark mode tray icon (optimized for macOS menu bar)
-          magick ./res/icon.png -resize 22x22 -colorspace gray -alpha set -background none -channel A -evaluate set 100% ./res/mac-tray-dark-x2.png
-          
-          # Create light mode tray icon (optimized for macOS menu bar)
-          magick ./res/icon.png -resize 22x22 -negate -colorspace gray -alpha set -background none -channel A -evaluate set 100% ./res/mac-tray-light-x2.png
-
-          # Create AppIcon.icns (macOS native icon format)
-          mkdir -p ./iconset.iconset
-          cp "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_16.png" "./iconset.iconset/icon_16x16.png"
-          cp "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png" "./iconset.iconset/icon_16x16@2x.png"
-          cp "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_32.png" "./iconset.iconset/icon_32x32.png"
-          cp "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_64.png" "./iconset.iconset/icon_32x32@2x.png"
-          cp "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_128.png" "./iconset.iconset/icon_128x128.png"
-          cp "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png" "./iconset.iconset/icon_128x128@2x.png"
-          cp "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_256.png" "./iconset.iconset/icon_256x256.png"
-          cp "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png" "./iconset.iconset/icon_256x256@2x.png"
-          cp "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_512.png" "./iconset.iconset/icon_512x512.png"
-          cp "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/app_icon_1024.png" "./iconset.iconset/icon_512x512@2x.png"
-          iconutil -c icns ./iconset.iconset -o ./flutter/macos/Runner/AppIcon.icns
-          rm -rf ./iconset.iconset
-
-          # Create Contents.json for macOS app icon
-          echo '{
-            "images": [
-              {"size":"16x16","idiom":"mac","filename":"app_icon_16.png","scale":"1x"},
-              {"size":"16x16","idiom":"mac","filename":"app_icon_32.png","scale":"2x"},
-              {"size":"32x32","idiom":"mac","filename":"app_icon_32.png","scale":"1x"},
-              {"size":"32x32","idiom":"mac","filename":"app_icon_64.png","scale":"2x"},
-              {"size":"128x128","idiom":"mac","filename":"app_icon_128.png","scale":"1x"},
-              {"size":"128x128","idiom":"mac","filename":"app_icon_256.png","scale":"2x"},
-              {"size":"256x256","idiom":"mac","filename":"app_icon_256.png","scale":"1x"},
-              {"size":"256x256","idiom":"mac","filename":"app_icon_512.png","scale":"2x"},
-              {"size":"512x512","idiom":"mac","filename":"app_icon_512.png","scale":"1x"},
-              {"size":"512x512","idiom":"mac","filename":"app_icon_1024.png","scale":"2x"}
-            ],
-            "info": {
-              "version": 1,
-              "author": "xcode"
-            }
-          }' > "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json"
-          
-          # Copy icons and Contents.json to both locations
-          cp -r flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/* macos/Runner/Assets.xcassets/AppIcon.appiconset/
+          # Create macOS specific icons from PNG
+          magick ./flutter/assets/icon.png -resize 128x128 ./res/mac-icon.png
+          magick ./flutter/assets/icon.png -resize 22x22 -colorspace gray -alpha set -background none -channel A -evaluate set 100% ./res/mac-tray-dark-x2.png
+          magick ./flutter/assets/icon.png -resize 22x22 -negate -colorspace gray -alpha set -background none -channel A -evaluate set 100% ./res/mac-tray-light-x2.png
 
           echo -e "\r🟢 Création des icones... OK"
           echo "—————"
 
           # ========================================
-          # Copier l'icône aux autres emplacements requis
-          echo -n "🟠 Copie des icones..."
-          cp ./res/icon.ico flutter/windows/runner/resources/app-icon.ico
-
-          # ========================================
           # Modifier le fichier ui.rs pour remplacer l'icône intégrée en base64
           SEARCH_STR="iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAACXBIWXMAAEiuAABIrgHwmhA7AAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAEx9JREFUeJztnXmYHMV5h9"
-          b64=$(base64 < ./res/icon.png)
+          b64=$(base64 < ./flutter/assets/icon.png)
           sed -i '' -e "s~$SEARCH_STR.*\"~$b64\"~" ./src/ui.rs
           echo -e "\r🟢 Copie des icones... OK"
           echo "—————"
