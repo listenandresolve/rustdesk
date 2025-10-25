@@ -1181,7 +1181,7 @@ jobs:
           
           echo "PKG scripts prepared."
 
-      - name: Create, sign and notarize PKG
+      - name: Create PKG
         if: env.MACOS_P12_BASE64 != null && env.UPLOAD_ARTIFACT == 'true'
         shell: bash
         run: |
@@ -1198,7 +1198,7 @@ jobs:
               <title>RustDesk</title>
               <welcome>Welcome to RustDesk Installation</welcome>
               <license>MIT License or your custom license</license>
-              <pkg-ref id="com.listenandresolve.rustdesk" version="${{ env.TAG_NAME }}" auth="root">
+              <pkg-ref id="com.listenandresolve.rustdesk" version="nightly" auth="root">
                   <bundle-version>
                       <bundle id="com.listenandresolve.rustdesk" />
                   </bundle-version>
@@ -1213,15 +1213,21 @@ jobs:
           # Créer component PKG avec scripts pre/postinstall
           pkgbuild --component "$APP_PATH" \
                    --identifier "com.listenandresolve.rustdesk" \
-                   --version "${{ env.TAG_NAME }}" \
+                   --version "nightly" \
                    --install-location "/Applications" \
                    --ownership recommended \
                    --scripts pkg_scripts \
                    $COMPONENT_PKG
           
-          # Créer PKG final (distribuable, signé)
+          # Vérification debug : Lister le contenu du component PKG
+          echo "=== Debug: Contenu du component PKG ==="
+          pkgutil --expand $COMPONENT_PKG temp_pkg_dir
+          ls -la temp_pkg_dir || echo "Impossible de lister (non fatal)"
+          rm -rf temp_pkg_dir
+          
+          # Créer PKG final (distribuable, signé) – Utilise --package-path au lieu de --package
           productbuild --distribution "$DISTRIBUTION_XML" \
-                       --package "$COMPONENT_PKG" \
+                       --package-path . \  # Dossier contenant $COMPONENT_PKG
                        --resources "." \  # Ajoute icons/background si tu en as (ex. background.tiff)
                        --sign "${{ secrets.MACOS_CODESIGN_IDENTITY }}" \
                        "$PKG_NAME"
