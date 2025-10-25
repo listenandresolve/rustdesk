@@ -1126,17 +1126,14 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k actions rustdesk.keychain
           rm -f application.p12 installer.p12
           
-          echo "=== List Identities ==="
-          security find-identity -v -p basic rustdesk.keychain
-          
           echo "=== Sign Frameworks ==="
           if [ -d "$APP_PATH/Contents/Frameworks" ]; then
             find "$APP_PATH/Contents/Frameworks" -type f \( -name "*.framework" -o -name "*.dylib" \) -exec \
-              codesign --force --options runtime -s "Developer ID Application: LISTEN AND RESOLVE" --timestamp --deep {} \;
+              codesign --force --options runtime -s "${{ secrets.MACOS_CODESIGN_IDENTITY }}" --timestamp --deep {} \;
           fi
           
           echo "=== Sign App Bundle ==="
-          codesign --force --options runtime -s "Developer ID Application: LISTEN AND RESOLVE" --timestamp --deep --strict "$APP_PATH" -vvv
+          codesign --force --options runtime -s "${{ secrets.MACOS_CODESIGN_IDENTITY }}" --timestamp --deep --strict "$APP_PATH" -vvv
           
           echo "=== Verify App Signature ==="
           codesign -vvv --deep --strict "$APP_PATH"
@@ -1154,7 +1151,7 @@ jobs:
             "$APP_PATH"
           
           echo "=== Sign DMG ==="
-          codesign --force --sign "Developer ID Application: LISTEN AND RESOLVE" "$DMG_NAME"
+          codesign --force --sign "${{ secrets.MACOS_CODESIGN_IDENTITY }}" "$DMG_NAME"
           
           echo "=== Notarize DMG ==="
           rcodesign notary-submit --api-key-path ${{ github.workspace }}/rustdesk.json --staple "$DMG_NAME"
@@ -1162,12 +1159,12 @@ jobs:
           echo "=== Create Component PKG ==="
           pkgbuild --component "$APP_PATH" \
                    --install-location /Applications \
-                   --sign "Developer ID Installer: LISTEN AND RESOLVE" \
+                   --sign "${{ secrets.MACOS_INSTALLER_IDENTITY }}" \
                    RustDesk-component.pkg
           
           echo "=== Create Final PKG ==="
           productbuild --package RustDesk-component.pkg \
-                       --sign "Developer ID Installer: LISTEN AND RESOLVE" \
+                       --sign "${{ secrets.MACOS_INSTALLER_IDENTITY }}" \
                        rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.pkg
           
           echo "=== Verify PKG Signature ==="
