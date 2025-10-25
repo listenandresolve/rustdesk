@@ -1225,12 +1225,18 @@ jobs:
           ls -la temp_pkg_dir || echo "Impossible de lister (non fatal)"
           rm -rf temp_pkg_dir
           
-          # Créer PKG final (distribuable, signé) – Utilise --package-path au lieu de --package
-          productbuild --distribution "$DISTRIBUTION_XML" \
-                       --package-path . \  # Dossier contenant $COMPONENT_PKG
-                       --resources "." \  # Ajoute icons/background si tu en as (ex. background.tiff)
-                       --sign "${{ secrets.MACOS_CODESIGN_IDENTITY }}" \
-                       "$PKG_NAME"
+          # Créer PKG final (distribuable, signé)
+          # Note : --resources ajoute icons/background si tu en as dans le dossier courant (ex. background.tiff)
+          #        --package-path indique le dossier contenant $COMPONENT_PKG
+          echo "=== Debug: Commande productbuild ==="
+          echo "productbuild --distribution $DISTRIBUTION_XML --package-path . --resources . --sign \"${{ secrets.MACOS_CODESIGN_IDENTITY }}\" $PKG_NAME"
+          
+          productbuild \
+            --distribution "$DISTRIBUTION_XML" \
+            --package-path . \
+            --resources . \
+            --sign "${{ secrets.MACOS_CODESIGN_IDENTITY }}" \
+            "$PKG_NAME"
           
           # Notariser le PKG
           rcodesign notary-submit --api-key-path "${{ github.workspace }}/rustdesk.json" --staple "$PKG_NAME"
