@@ -1061,82 +1061,48 @@ jobs:
       - name: Codesign app and create signed dmg
         if: env.MACOS_P12_BASE64 != null && env.UPLOAD_ARTIFACT == 'true'
         run: |
-          # Define paths
           APP_PATH="./flutter/build/macos/Build/Products/Release/RustDesk.app"
           DMG_NAME="rustdesk-${{ matrix.job.arch }}.dmg"
           
-          echo "=== Debug: Initial Verification ==="
-          echo "App path: $APP_PATH"
-          ls -la "$APP_PATH/Contents/Frameworks" || echo "No Frameworks directory"
-          security find-identity -v -p codesigning
-          
-          echo "=== Step 1: Unlock Keychain ==="
+          echo "=== Use existing keychain ==="
           security default-keychain -s rustdesk.keychain
-          security unlock-keychain -p ${{ secrets.MACOS_P12_PASSWORD }} rustdesk.keychain
+          security unlock-keychain -p actions rustdesk.keychain
           
-          echo "=== Step 2: Sign App Bundle ==="
-          # Sign all frameworks first
+          echo "=== Sign Frameworks ==="
           if [ -d "$APP_PATH/Contents/Frameworks" ]; then
             find "$APP_PATH/Contents/Frameworks" -type f \( -name "*.framework" -o -name "*.dylib" \) -exec \
-              codesign --force --options runtime -s "${{ secrets.MACOS_CODESIGN_IDENTITY }}" --timestamp --deep {} \;
+              codesign --force --options runtime -s "Developer ID Application: LISTEN AND RESOLVE" --timestamp --deep {} \;
           fi
           
-          # Sign the main app bundle
-          codesign --force --options runtime -s "${{ secrets.MACOS_CODESIGN_IDENTITY }}" --timestamp --deep --strict "$APP_PATH" -vvv
+          echo "=== Sign App Bundle ==="
+          codesign --force --options runtime -s "Developer ID Application: LISTEN AND RESOLVE" --timestamp --deep --strict "$APP_PATH" -vvv
           
-          # Verify signature
-          echo "Verifying app signature:"
-          codesign -vvv --deep --strict "$APP_PATH"
-
-          echo "=== Step 3: Notarize App ==="
-          # Notarize the app using rcodesign
-          rcodesign notary-submit --api-key-path "${{ github.workspace }}/rustdesk.json" --staple "$APP_PATH"
-          xcrun stapler staple "$APP_PATH"
-          
-          echo "=== Step 4: Create DMG ==="
-          # Configure create-dmg for more unmount attempts
-          CREATE_DMG="$(command -v create-dmg)"
-          CREATE_DMG="$(readlink -f "$CREATE_DMG")"
-          sed -i -e 's/MAXIMUM_UNMOUNTING_ATTEMPTS=3/MAXIMUM_UNMOUNTING_ATTEMPTS=7/' "$CREATE_DMG"
-          
-          # Create DMG with notarized app
-          create-dmg \
-            --volname "RustDesk" \
-            --background "background.tiff" \
-            --icon "RustDesk.app" 130 100 \
-            --hide-extension "RustDesk.app" \
-            --window-size 800 450 \
-            --icon-size 80 \
-            --app-drop-link 650 280 \
-            "$DMG_NAME" \
-            "$APP_PATH"
-          
-          echo "=== Step 5: Sign DMG ==="
-          # Sign the DMG
-          codesign --force --options runtime -s "${{ secrets.MACOS_CODESIGN_IDENTITY }}" --timestamp --deep --strict "$DMG_NAME" -vvv
-          
-          echo "=== Step 6: Notarize DMG ==="
-          # Submit DMG for notarization and staple using rcodesign
-          rcodesign notary-submit --api-key-path "${{ github.workspace }}/rustdesk.json" --staple "$DMG_NAME"
-          xcrun stapler staple "$DMG_NAME"
-          
-          echo "=== Step 7: Final Verification ==="
-          # Vérification approfondie de la signature de l'application .app
+          echo "=== Verify App Signature ==="
           codesign -vvv --deep --strict "$APP_PATH"
           spctl --assess --type execute -vv "$APP_PATH"
           
-          # Vérification approfondie de la signature et de la notarisation du DMG
+          echo "=== Create DMG ==="
+          create-dmg \
+            --volname "RustDesk ${{ env.VERSION }}" \
+            --volicon "./res/icon.icns" \
+            --window-pos 200 120 \
+            --window-size 800 400 \
+            --icon-size 100 \
+            --icon "RustDesk.app" 200 190 \
+            --hide-extension "RustDesk.app" \
+            --app-drop-link 600 185 \
+            "$DMG_NAME" \
+            "$APP_PATH"
+          
+          echo "=== Sign DMG ==="
+          codesign --force --sign "Developer ID Application: LISTEN AND RESOLVE" "$DMG_NAME"
+          
+          echo "=== Notarize DMG ==="
+          rcodesign notary-submit --api-key-path ${{ github.workspace }}/rustdesk.json --staple "$DMG_NAME"
+          
+          echo "=== Verify DMG ==="
           codesign -vvv --deep --strict "$DMG_NAME"
           spctl --assess --type install -vv "$DMG_NAME"
-          
-          echo "=== Process Complete ==="
-          echo "DMG created and signed: $DMG_NAME"
-
-          echo "=== STAPLER VALIDATE ==="
-          xcrun stapler validate "$APP_PATH"
-          xcrun stapler validate "$DMG_NAME"
-          echo "=== IDENTITY VALIDATE ==="
-          security find-identity -v -p codesigning
 
       - name: Prepare PKG scripts
         if: env.MACOS_P12_BASE64 != null && env.UPLOAD_ARTIFACT == 'true'
