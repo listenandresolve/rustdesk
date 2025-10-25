@@ -1225,17 +1225,19 @@ jobs:
           ls -la temp_pkg_dir || echo "Impossible de lister (non fatal)"
           rm -rf temp_pkg_dir
           
-          # Créer PKG final (distribuable, signé)
-          # Note : --resources ajoute icons/background si tu en as dans le dossier courant (ex. background.tiff)
-          #        --package-path indique le dossier contenant $COMPONENT_PKG
+          # Vérifier l'identité de signature pour PKG (doit être un Developer ID Installer)
+          echo "=== Debug: Vérification des identités de signature disponibles ==="
+          security find-identity -v -p codesigning
+          
+          # Créer PKG final (distribuable, signé) – Utilise le certificat INSTALLER spécifique
           echo "=== Debug: Commande productbuild ==="
-          echo "productbuild --distribution $DISTRIBUTION_XML --package-path . --resources . --sign \"${{ secrets.MACOS_CODESIGN_IDENTITY }}\" $PKG_NAME"
+          echo "productbuild --distribution $DISTRIBUTION_XML --package-path . --resources . --sign \"${{ secrets.MACOS_INSTALLER_IDENTITY }}\" $PKG_NAME"
           
           productbuild \
             --distribution "$DISTRIBUTION_XML" \
             --package-path . \
             --resources . \
-            --sign "${{ secrets.MACOS_CODESIGN_IDENTITY }}" \
+            --sign "${{ secrets.MACOS_INSTALLER_IDENTITY }}" \
             "$PKG_NAME"
           
           # Notariser le PKG
@@ -1248,9 +1250,10 @@ jobs:
           xcrun stapler validate "$PKG_NAME"
           
           echo "PKG created, signed, and notarized: $PKG_NAME"
+
 #=====# CUSTOM LISTEN AND RESOLVE
 
-      - name: Publish DMG package
+      - name: Publish DMG and PKG
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: softprops/action-gh-release@v1
         with:
