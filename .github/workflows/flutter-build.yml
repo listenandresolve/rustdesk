@@ -603,7 +603,7 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Import the codesign cert
+      - name: Import the codesign cert (Application)
         if: env.MACOS_P12_BASE64 != null
         uses: apple-actions/import-codesign-certs@v1
         with:
@@ -611,6 +611,14 @@ jobs:
           p12-password: ${{ secrets.MACOS_P12_PASSWORD }}
           keychain: rustdesk
 
+      - name: Import the installer cert (Installer)
+        if: env.MACOS_P12_BASE64 != null
+        uses: apple-actions/import-codesign-certs@v1
+        with:
+          p12-file-base64: ${{ secrets.MACOS_INSTALLER_P12_BASE64 }}
+          p12-password: ${{ secrets.MACOS_INSTALLER_P12_PASSWORD }}
+          keychain: rustdesk
+          
       - name: Check sign and import sign key
         if: env.MACOS_P12_BASE64 != null
         run: |
@@ -1182,7 +1190,7 @@ jobs:
           echo "PKG scripts prepared."
 
       - name: Create PKG
-        if: env.MACOS_P12_BASE64 != null && env.UPLOAD_ARTIFACT == 'true'
+        if: env.MACOS_P12_BASE64 != null && env.MACOS_INSTALLER_P12_BASE64 != null && env.UPLOAD_ARTIFACT == 'true'
         shell: bash
         run: |
           # Définir paths
@@ -1225,32 +1233,44 @@ jobs:
           ls -la temp_pkg_dir || echo "Impossible de lister (non fatal)"
           rm -rf temp_pkg_dir
           
-          # Vérifier l'identité de signature pour PKG (doit être un Developer ID Installer)
-          echo "=== Debug: Vérification des identités de signature disponibles ==="
+          # Vérifier les identités de signature disponibles
+          echo "=== Debug: Identités de signature disponibles ==="
+          echo "Application certificates:"
           security find-identity -v -p codesigning
+          echo "Installer certificates:"
+          security find-identity -v -p basic | grep "Developer ID Installer" || echo "Aucun certificat Installer trouvé"
           
-          # Créer PKG final (distribuable, signé) – Utilise le certificat INSTALLER spécifique
-          echo "=== Debug: Commande productbuild ==="
-          echo "productbuild --distribution $DISTRIBUTION_XML --package-path . --resources . --sign \"${{ secrets.MACOS_INSTALLER_IDENTITY }}\" $PKG_NAME"
+          # Récupérer automatiquement l'identité du certificat Installer
+          INSTALLER_IDENTITY=$(security find-identity -v -p basic | grep "Developer ID Installer" | head -1 | sed -E 's/.*"(.*)"/\1/')
           
+          if [ -z "$INSTALLER_IDENTITY" ]; then
+            echo "ERREUR: Aucun certificat Developer ID Installer trouvé !"
+            echo "Tentative avec le nom du secret..."
+            INSTALLER_IDENTITY="${{ secrets.MACOS_INSTALLER_IDENTITY }}"
+          fi
+          
+          echo "=== Using Installer Identity: $INSTALLER_IDENTITY ==="
+          
+          # Créer PKG final (distribuable, signé)
           productbuild \
             --distribution "$DISTRIBUTION_XML" \
             --package-path . \
             --resources . \
-            --sign "${{ secrets.MACOS_INSTALLER_IDENTITY }}" \
+            --sign "$INSTALLER_IDENTITY" \
             "$PKG_NAME"
           
           # Notariser le PKG
+          echo "=== Notarisation du PKG ==="
           rcodesign notary-submit --api-key-path "${{ github.workspace }}/rustdesk.json" --staple "$PKG_NAME"
           xcrun stapler staple "$PKG_NAME"
           
           # Vérifier
+          echo "=== Vérification finale ==="
           codesign -vvv --deep --strict "$PKG_NAME"
           spctl --assess --type install -vv "$PKG_NAME"
           xcrun stapler validate "$PKG_NAME"
           
-          echo "PKG created, signed, and notarized: $PKG_NAME"
-
+          echo "✅ PKG created, signed, and notarized: $PKG_NAME"
 #=====# CUSTOM LISTEN AND RESOLVE
 
       - name: Publish DMG and PKG
