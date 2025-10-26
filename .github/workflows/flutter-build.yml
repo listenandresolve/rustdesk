@@ -1157,11 +1157,14 @@ jobs:
           echo "=== Sortie artefacts ==="
           ls -lah "$DMG_NAME" "$PKG_NAME"
 #=====# CUSTOM LISTEN AND RESOLVE
-      - name: Upload macOS artifacts
+
+      - name: Publish DMG/PKG to GitHub Release (nightly)
         if: env.UPLOAD_ARTIFACT == 'true'
-        uses: actions/upload-artifact@v4
+        uses: softprops/action-gh-release@v2
         with:
-          name: rustdesk-macos-${{ matrix.job.arch }}
-          path: |
+          prerelease: true
+          tag_name: ${{ env.TAG_NAME }}
+          files: |
             rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg
             rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.pkg
+
