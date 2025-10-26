@@ -1165,8 +1165,7 @@ jobs:
           
           echo "=== Sortie artefacts ==="
           ls -lah "$DMG_NAME" "$PKG_NAME"
-#=====# CUSTOM LISTEN AND RESOLVE
-
+          
       - name: Publish DMG/PKG to GitHub Release (nightly)
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: softprops/action-gh-release@v2
@@ -1174,6 +1173,7 @@ jobs:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg
-            rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.pkg
+            rustdesk*-${{ matrix.job.arch }}.dmg
+            rustdesk*-${{ matrix.job.arch }}.pkg
+#=====# CUSTOM LISTEN AND RESOLVE
 
