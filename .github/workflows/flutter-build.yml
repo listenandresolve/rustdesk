@@ -1153,7 +1153,16 @@ jobs:
           echo "=== Sign PKG (Installer) ==="
           productsign --sign "$INSTALLER_IDENTITY" RustDesk-component.pkg "$PKG_NAME"
           pkgutil --check-signature "$PKG_NAME"
-
+          
+          echo "=== Notarize + staple PKG (rcodesign) ==="
+          tries=0
+          until rcodesign notary-submit --api-key-path "$NOTARY_JSON_PATH" --staple "$PKG_NAME"; do
+            tries=$((tries+1))
+            if [ "$tries" -ge 3 ]; then echo "Notarization PKG failed"; exit 1; fi
+            echo "retry PKG notarization in 30s..."
+            sleep 30
+          done
+          
           echo "=== Sortie artefacts ==="
           ls -lah "$DMG_NAME" "$PKG_NAME"
 #=====# CUSTOM LISTEN AND RESOLVE
