@@ -1064,10 +1064,10 @@ jobs:
         env:
           APP_P12_B64: ${{ secrets.MACOS_P12_BASE64 }}
           APP_P12_PWD: ${{ secrets.MACOS_P12_PASSWORD }}
-          APP_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}             # ex: "Developer ID Application: ACME INC (TEAMID)"
+          APP_IDENTITY: ${{ secrets.MACOS_CODESIGN_IDENTITY }}
           INSTALLER_P12_B64: ${{ secrets.MACOS_INSTALLER_P12_BASE64 }}
           INSTALLER_P12_PWD: ${{ secrets.MACOS_INSTALLER_P12_PASSWORD }}
-          INSTALLER_IDENTITY: ${{ secrets.MACOS_INSTALLER_IDENTITY }}      # ex: "Developer ID Installer: ACME INC (TEAMID)"
+          INSTALLER_IDENTITY: ${{ secrets.MACOS_INSTALLER_IDENTITY }}
           NOTARY_JSON_PATH: ${{ github.workspace }}/rustdesk.json
           APP_PATH: ./flutter/build/macos/Build/Products/Release/RustDesk.app
           DMG_NAME: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg
@@ -1173,7 +1173,7 @@ jobs:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            rustdesk*-${{ matrix.job.arch }}.dmg
-            rustdesk*-${{ matrix.job.arch }}.pkg
+            rustdesk-${{ matrix.job.arch }}.dmg
+            rustdesk-${{ matrix.job.arch }}.pkg
 #=====# CUSTOM LISTEN AND RESOLVE
 
