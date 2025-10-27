@@ -1070,8 +1070,8 @@ jobs:
           INSTALLER_IDENTITY: ${{ secrets.MACOS_INSTALLER_IDENTITY }}
           NOTARY_JSON_PATH: ${{ github.workspace }}/rustdesk.json
           APP_PATH: ./flutter/build/macos/Build/Products/Release/RustDesk.app
-          DMG_NAME: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg
-          PKG_NAME: rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.pkg
+          DMG_NAME: rustdesk-${{ matrix.job.arch }}.dmg
+          PKG_NAME: rustdesk-${{ matrix.job.arch }}.pkg
         run: |
           set -euo pipefail
 
