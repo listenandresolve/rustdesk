@@ -1144,11 +1144,35 @@ jobs:
             sleep 30
           done
 
-          echo "=== Build component PKG ==="
+          echo "=== Créer les scripts d'installation ==="
+          mkdir -p scripts
+          
+          cat > scripts/preinstall << 'EOF'
+          #!/bin/bash
+          launchctl unload -w /Library/LaunchDaemons/com.listenandresolve.RustDesk_service.plist 2>/dev/null || true
+          pkill -9 -x RustDesk || true
+          sleep 2
+          exit 0
+          EOF
+          
+          cat > scripts/postinstall << 'EOF'
+          #!/bin/bash
+          xattr -r -d com.apple.quarantine /Applications/RustDesk.app 2>/dev/null || true
+          if [ -f "/Library/LaunchDaemons/com.listenandresolve.RustDesk_service.plist" ]; then
+              launchctl load -w /Library/LaunchDaemons/com.listenandresolve.RustDesk_service.plist || true
+          fi
+          exit 0
+          EOF
+          
+          chmod +x scripts/preinstall scripts/postinstall
+          
+          echo "=== Build component PKG avec scripts ==="
           pkgbuild \
             --component "$APP_PATH" \
             --install-location /Applications \
+            --scripts scripts \
             RustDesk-component.pkg
+
 
           echo "=== Sign PKG (Installer) ==="
           productsign --sign "$INSTALLER_IDENTITY" RustDesk-component.pkg "$PKG_NAME"
