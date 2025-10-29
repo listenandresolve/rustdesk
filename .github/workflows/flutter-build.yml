@@ -1149,7 +1149,11 @@ jobs:
           
           cat > scripts/preinstall << 'EOF'
           #!/bin/bash
+          # Arrêter les services existants
           launchctl unload -w /Library/LaunchDaemons/com.listenandresolve.RustDesk_service.plist 2>/dev/null || true
+          for USER_ID in $(dscl . list /Users UniqueID | awk '$2 >= 501 {print $2}'); do
+              launchctl bootout gui/$USER_ID /Library/LaunchAgents/com.listenandresolve.RustDesk_server.plist 2>/dev/null || true
+          done
           pkill -9 -x RustDesk || true
           sleep 2
           exit 0
@@ -1157,10 +1161,72 @@ jobs:
           
           cat > scripts/postinstall << 'EOF'
           #!/bin/bash
-          xattr -r -d com.apple.quarantine /Applications/RustDesk.app 2>/dev/null || true
-          if [ -f "/Library/LaunchDaemons/com.listenandresolve.RustDesk_service.plist" ]; then
-              launchctl load -w /Library/LaunchDaemons/com.listenandresolve.RustDesk_service.plist || true
-          fi
+          set -e
+          
+          APP_PATH="/Applications/RustDesk.app"
+          DAEMON_PLIST="/Library/LaunchDaemons/com.listenandresolve.RustDesk_service.plist"
+          AGENT_PLIST="/Library/LaunchAgents/com.listenandresolve.RustDesk_server.plist"
+          
+          xattr -r -d com.apple.quarantine "$APP_PATH" 2>/dev/null || true
+          
+          cat > "$DAEMON_PLIST" << 'PLIST_DAEMON'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>Label</key>
+              <string>com.listenandresolve.RustDesk_service</string>
+              <key>ProgramArguments</key>
+              <array>
+                  <string>/Applications/RustDesk.app/Contents/MacOS/RustDesk</string>
+                  <string>--service</string>
+              </array>
+              <key>KeepAlive</key>
+              <true/>
+              <key>RunAtLoad</key>
+              <true/>
+              <key>StandardOutPath</key>
+              <string>/var/log/rustdesk.log</string>
+              <key>StandardErrorPath</key>
+              <string>/var/log/rustdesk.log</string>
+          </dict>
+          </plist>
+          PLIST_DAEMON
+          
+          cat > "$AGENT_PLIST" << 'PLIST_AGENT'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>Label</key>
+              <string>com.listenandresolve.RustDesk_server</string>
+              <key>ProgramArguments</key>
+              <array>
+                  <string>/Applications/RustDesk.app/Contents/MacOS/RustDesk</string>
+                  <string>--server</string>
+              </array>
+              <key>KeepAlive</key>
+              <true/>
+              <key>RunAtLoad</key>
+              <true/>
+              <key>LimitLoadToSessionType</key>
+              <array>
+                  <string>Aqua</string>
+              </array>
+          </dict>
+          </plist>
+          PLIST_AGENT
+          
+          chown root:wheel "$DAEMON_PLIST" "$AGENT_PLIST"
+          chmod 644 "$DAEMON_PLIST" "$AGENT_PLIST"
+          
+          launchctl load -w "$DAEMON_PLIST" 2>/dev/null || true
+          
+          for USER_ID in $(dscl . list /Users UniqueID | awk '$2 >= 501 {print $2}'); do
+              USER_NAME=$(dscl . list /Users UniqueID | awk -v uid="$USER_ID" '$2 == uid {print $1}')
+              sudo -u "$USER_NAME" launchctl load -w "$AGENT_PLIST" 2>/dev/null || true
+          done
+          
           exit 0
           EOF
           
