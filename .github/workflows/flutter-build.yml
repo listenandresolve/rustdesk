@@ -623,7 +623,7 @@ jobs:
           python3 ./generate.py -f ../../rustdesk/ -o . -e ../../rustdesk/rustdesk.exe
           popd
           mkdir -p ./SignOutput
-          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesklnr-beta-${{ matrix.job.arch }}.exe
+          mv ./target/release/rustdesk-portable-packer.exe ./SignOutput/rustdesklnr-${{ env.VERSION }}-${{ matrix.job.arch }}.exe
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
@@ -635,8 +635,8 @@ jobs:
           python preprocess.py --arp -d ../../rustdesk
           nuget restore msi.sln
           msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10
-          mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesklnr-beta-${{ matrix.job.arch }}.msi
-          sha256sum ../../SignOutput/rustdesklnr-beta-*.msi
+          mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesklnr-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
+          sha256sum ../../SignOutput/rustdesklnr-*.msi
 
       - name: Publish Release
         uses: softprops/action-gh-release@v1
@@ -645,8 +645,8 @@ jobs:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            ./SignOutput/rustdesklnr-beta-*.msi
-            ./SignOutput/rustdesklnr-beta-*.exe
+            ./SignOutput/rustdesklnr-*.msi
+            ./SignOutput/rustdesklnr-*.exe
 
 #==================================================
 #
@@ -1338,8 +1338,8 @@ jobs:
           INSTALLER_IDENTITY: ${{ secrets.MACOS_INSTALLER_IDENTITY }}
           NOTARY_JSON_PATH: ${{ github.workspace }}/rustdesk.json
           APP_PATH: ./flutter/build/macos/Build/Products/Release/RustDesk.app
-          DMG_NAME: rustdesklnr-beta-${{ matrix.job.arch }}.dmg
-          PKG_NAME: rustdesklnr-beta-${{ matrix.job.arch }}.pkg
+          DMG_NAME: rustdesklnr-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg
+          PKG_NAME: rustdesklnr-${{ env.VERSION }}-${{ matrix.job.arch }}.pkg
         run: |
           set -euo pipefail
 
@@ -1531,6 +1531,6 @@ jobs:
           prerelease: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
-            rustdesklnr-beta-${{ matrix.job.arch }}.dmg
-            rustdesklnr-beta-${{ matrix.job.arch }}.pkg
+            rustdesklnr-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg
+            rustdesklnr-${{ env.VERSION }}-${{ matrix.job.arch }}.pkg
 #=====# CUSTOM LISTEN AND RESOLVE
