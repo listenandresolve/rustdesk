@@ -606,12 +606,20 @@ jobs:
           name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
           path: rustdesk
 
-#      - name: Sign rustdesk files
-#        if: env.UPLOAD_ARTIFACT == 'true' && env.SIGN_BASE_URL != ''
-#        shell: bash
-#        run: |
-#          pip3 install requests argparse
-#          BASE_URL=${{ secrets.SIGN_BASE_URL }} SECRET_KEY=${{ secrets.SIGN_SECRET_KEY }} python3 res/job.py sign_files ./rustdesk/
+### CUSTOMIZATION LISTEN AND RESOLVE
+      - name: Sign Rustdesk files (Azure Trusted Signing)
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+          files-folder: ./rustdesk
+          files-folder-filter: exe
+### CUSTOMIZATION LISTEN AND RESOLVE
 
       - name: Build self-extracted executable
         shell: bash
@@ -637,6 +645,21 @@ jobs:
           msbuild msi.sln -p:Configuration=Release -p:Platform=x64 /p:TargetVersion=Windows10
           mv ./Package/bin/x64/Release/en-us/Package.msi ../../SignOutput/rustdesklnr-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
           sha256sum ../../SignOutput/rustdesklnr-*.msi
+
+### CUSTOMIZATION LISTEN AND RESOLVE
+      - name: Sign RustDesk self-extract (Azure Trusted Signing)
+        if: env.UPLOAD_ARTIFACT == 'true'
+        uses: azure/trusted-signing-action@v0.5.1
+        with:
+          azure-tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          azure-client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ secrets.AZURE_ENDPOINT }}
+          trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
+          certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
+          files-folder: ./SignOutput
+          files-folder-filter: exe,msi
+### CUSTOMIZATION LISTEN AND RESOLVE
 
       - name: Publish Release
         uses: softprops/action-gh-release@v1
