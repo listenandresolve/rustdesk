@@ -9,15 +9,6 @@ on:
       upload-tag:
         type: string
         default: "nightly"
-  workflow_dispatch:
-    inputs:
-      upload-artifact:
-        type: boolean
-        default: true
-      upload-tag:
-        type: string
-        default: "1.4.5"
-        required: true
         
 env:
   SCITER_RUST_VERSION: "1.75" # https://github.com/rustdesk/rustdesk/discussions/7503, also 1.78 has ABI change which causes our sciter version not working, https://blog.rust-lang.org/2024/03/30/i128-layout-update.html
@@ -41,7 +32,7 @@ env:
   # 2. Update the `VCPKG_COMMIT_ID` in `ci.yml` and `playground.yml`.
   VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
   ARMV7_VCPKG_COMMIT_ID: "6f29f12e82a8293156836ad81cc9bf5af41fe836" # 2025.01.13, got "/opt/artifacts/vcpkg/vcpkg: No such file or directory" with latest version
-  VERSION: "1.4.5"
+  VERSION: "1.4.6"
   NDK_VERSION: "r27c"
   #signing keys env variable checks
   MACOS_P12_BASE64: "${{ secrets.MACOS_P12_BASE64 }}"
