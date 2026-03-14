@@ -679,13 +679,12 @@ jobs:
         uses: softprops/action-gh-release@v1
         if: env.UPLOAD_ARTIFACT == 'true'
         with:
-          prerelease: true
+          prerelease: false
+          make_latest: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
             ./SignOutput/rustdesk-*.msi
             ./SignOutput/rustdesk-*.exe
-          prerelease: false
-          make_latest: true
 
 #==================================================
 #
@@ -1581,11 +1580,10 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          prerelease: true
+          prerelease: false
+          make_latest: true
           tag_name: ${{ env.TAG_NAME }}
           files: |
             rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg
             rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.pkg
-          prerelease: false
-          make_latest: true
 #=====# CUSTOM LISTEN AND RESOLVE
