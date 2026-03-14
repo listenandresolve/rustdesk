@@ -684,6 +684,8 @@ jobs:
           files: |
             ./SignOutput/rustdesk-*.msi
             ./SignOutput/rustdesk-*.exe
+          prerelease: false
+          make_latest: true
 
 #==================================================
 #
@@ -1584,4 +1586,6 @@ jobs:
           files: |
             rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.dmg
             rustdesk-${{ env.VERSION }}-${{ matrix.job.arch }}.pkg
+          prerelease: false
+          make_latest: true
 #=====# CUSTOM LISTEN AND RESOLVE
