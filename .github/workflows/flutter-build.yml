@@ -179,11 +179,17 @@ jobs:
           ' src/lang.rs
 
           # ==============================================================
-          echo "🟠 Vide buildHelpCards et supprime buildInstallCard..."
-          perl -i -0777 -pe '
-            s/Widget buildHelpCards\(String updateUrl\) \{.*?\n  \}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg;
-            s/Widget buildInstallCard\(.*?\n  \}/ /sg;
-          ' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "🟠 Modification de buildHelpCards (Activation Update UI & Permissions Mac)..."
+          
+          # 1. On retire le blocage pour les clients custom et la vérification du mot "rustdesk"
+          perl -i -0777 -pe "s/if \(!bind\.isCustomClient\(\) &&\s*updateUrl\.isNotEmpty &&\s*!isCardClosed &&\s*bind\.mainUriPrefixSync\(\)\.contains\('rustdesk'\)\)/if (updateUrl.isNotEmpty && !isCardClosed)/s" flutter/lib/desktop/pages/desktop_home_page.dart
+          # 2. On change le lien du Changelog pour pointer vers ton dépôt GitHub
+          sed -i -e "s|https://github.com/rustdesk/rustdesk/releases/tag/|https://listenandresolve.com/rustdesk'|g" flutter/lib/desktop/pages/desktop_home_page.dart
+          # 3. On change le bouton Download (si non installé) pour pointer vers ton site
+          sed -i -e "s|Uri.parse('https://rustdesk.com/download')|Uri.parse('https://listenandresolve.com/rustdesk')|g" flutter/lib/desktop/pages/desktop_home_page.dart
+          
+          echo -e "\r🟢 Modification de buildHelpCards... OK"
+          echo "—————"
 
           # ==============================================================
           echo "🟠 Remplacement buildPopupMenu..."
@@ -1015,11 +1021,14 @@ jobs:
           ' src/lang.rs
 
           # ==============================================================
-          echo "🟠 Vide buildHelpCards et supprime buildInstallCard..."
-          perl -i -0777 -pe '
-            s/Widget buildHelpCards\(String updateUrl\) \{.*?\n  \}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg;
-            s/Widget buildInstallCard\(.*?\n  \}/ /sg;
-          ' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "🟠 Modification de buildHelpCards (Activation Update UI & Permissions Mac)..."
+          
+          # 1. On retire le blocage pour les clients custom et la vérification du mot "rustdesk"
+          perl -i -0777 -pe "s/if \(!bind\.isCustomClient\(\) &&\s*updateUrl\.isNotEmpty &&\s*!isCardClosed &&\s*bind\.mainUriPrefixSync\(\)\.contains\('rustdesk'\)\)/if (updateUrl.isNotEmpty && !isCardClosed)/s" flutter/lib/desktop/pages/desktop_home_page.dart
+          # 2. On change le lien du Changelog pour pointer vers ton dépôt GitHub
+          sed -i -e "s|https://github.com/rustdesk/rustdesk/releases/tag/|https://listenandresolve.com/rustdesk'|g" flutter/lib/desktop/pages/desktop_home_page.dart
+          # 3. On change le bouton Download (si non installé) pour pointer vers ton site
+          sed -i -e "s|Uri.parse('https://rustdesk.com/download')|Uri.parse('https://listenandresolve.com/rustdesk')|g" flutter/lib/desktop/pages/desktop_home_page.dart
 
           # ==============================================================
           echo "🟠 Remplacement buildPopupMenu..."
