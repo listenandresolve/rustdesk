@@ -183,11 +183,9 @@ jobs:
           
           # 1. On retire le blocage pour les clients custom et la vérification du mot "rustdesk"
           perl -i -0777 -pe "s/if \(!bind\.isCustomClient\(\) &&\s*updateUrl\.isNotEmpty &&\s*!isCardClosed &&\s*bind\.mainUriPrefixSync\(\)\.contains\('rustdesk'\)\)/if (updateUrl.isNotEmpty && !isCardClosed)/s" flutter/lib/desktop/pages/desktop_home_page.dart
-          # 2. On change le lien du Changelog pour pointer vers ton dépôt GitHub
-          sed -i -e "s|https://github.com/rustdesk/rustdesk/releases/tag/|https://listenandresolve.com/rustdesk'|g" flutter/lib/desktop/pages/desktop_home_page.dart
-          # 3. On change le bouton Download (si non installé) pour pointer vers ton site
+          # 2. On change le lien du Changelog pour pointer vers ta page web (sans erreur de syntaxe Dart)
+          perl -i -pe "s|'https://github.com/rustdesk/rustdesk/releases/tag/\\\$\\{bind.mainGetNewVersion\(\)\\}'|'https://listenandresolve.com/rustdesk'|g" flutter/lib/desktop/pages/desktop_home_page.dart          # 3. On change le bouton Download (si non installé) pour pointer vers ton site
           sed -i -e "s|Uri.parse('https://rustdesk.com/download')|Uri.parse('https://listenandresolve.com/rustdesk')|g" flutter/lib/desktop/pages/desktop_home_page.dart
-          
           echo -e "\r🟢 Modification de buildHelpCards... OK"
           echo "—————"
 
@@ -1025,8 +1023,8 @@ jobs:
           
           # 1. On retire le blocage pour les clients custom et la vérification du mot "rustdesk"
           perl -i -0777 -pe "s/if \(!bind\.isCustomClient\(\) &&\s*updateUrl\.isNotEmpty &&\s*!isCardClosed &&\s*bind\.mainUriPrefixSync\(\)\.contains\('rustdesk'\)\)/if (updateUrl.isNotEmpty && !isCardClosed)/s" flutter/lib/desktop/pages/desktop_home_page.dart
-          # 2. On change le lien du Changelog pour pointer vers ton dépôt GitHub
-          sed -i -e "s|https://github.com/rustdesk/rustdesk/releases/tag/|https://listenandresolve.com/rustdesk'|g" flutter/lib/desktop/pages/desktop_home_page.dart
+          # 2. On change le lien du Changelog pour pointer vers ta page web (sans erreur de syntaxe Dart)
+          perl -i -pe "s|'https://github.com/rustdesk/rustdesk/releases/tag/\\\$\\{bind.mainGetNewVersion\(\)\\}'|'https://listenandresolve.com/rustdesk'|g" flutter/lib/desktop/pages/desktop_home_page.dart          # 3. On change le bouton Download (si non installé) pour pointer vers ton site
           # 3. On change le bouton Download (si non installé) pour pointer vers ton site
           sed -i -e "s|Uri.parse('https://rustdesk.com/download')|Uri.parse('https://listenandresolve.com/rustdesk')|g" flutter/lib/desktop/pages/desktop_home_page.dart
 
