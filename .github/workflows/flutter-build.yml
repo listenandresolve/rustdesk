@@ -419,7 +419,7 @@ jobs:
                   let mut m = HashMap::new();
                   m.insert("allow-logon-screen-password".to_string(), "Y".to_string());
                   m.insert("allow-https-21114".to_string(), "Y".to_string());
-                  m.insert("hide-help-cards".to_string(), "Y".to_string());
+                  m.insert("hide-help-cards".to_string(), "N".to_string());
                   RwLock::new(m)
               };
           EOF
@@ -1263,7 +1263,7 @@ jobs:
                   let mut m = HashMap::new();
                   m.insert("allow-logon-screen-password".to_string(), "Y".to_string());
                   m.insert("allow-https-21114".to_string(), "Y".to_string());
-                  m.insert("hide-help-cards".to_string(), "Y".to_string());
+                  m.insert("hide-help-cards".to_string(), "N".to_string());
                   RwLock::new(m)
               };
           EOF
