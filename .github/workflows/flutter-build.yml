@@ -32,7 +32,7 @@ env:
   # 2. Update the `VCPKG_COMMIT_ID` in `ci.yml` and `playground.yml`.
   VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
   ARMV7_VCPKG_COMMIT_ID: "6f29f12e82a8293156836ad81cc9bf5af41fe836" # 2025.01.13, got "/opt/artifacts/vcpkg/vcpkg: No such file or directory" with latest version
-  VERSION: "1.4.6"
+  VERSION: "1.4.5"
   NDK_VERSION: "r27c"
   #signing keys env variable checks
   MACOS_P12_BASE64: "${{ secrets.MACOS_P12_BASE64 }}"
@@ -367,9 +367,12 @@ jobs:
           # 1. Remplacement de l'URL de l'API dans lib.rs
           sed -i -e "s|https://api.rustdesk.com/version/latest|https://listenandresolve.com/rustdesk/api.php?action=check|g" ./libs/hbb_common/src/lib.rs
           
-          # 2. Suppression de la condition 'if is_custom_client() { return; }' dans common.rs
-          # On utilise perl pour faire un remplacement multi-lignes très précis sans casser le reste
+          # 2. Suppression de la condition bloquante dans common.rs
           perl -i -0777 -pe 's/(pub fn check_software_update\(\) \{)\s*if is_custom_client\(\) \{\s*return;\s*\}/$1/s' ./src/common.rs
+          
+          # 3. Validation de notre domaine personnalisé pour le check de sécurité
+          sed -i -e "s|api.rustdesk.com|listenandresolve.com|g" ./libs/hbb_common/src/config.rs
+          sed -i -e "s|rustdesk.com|listenandresolve.com|g" ./libs/hbb_common/src/config.rs
           
           echo -e "\r🟢 Configuration de l'Auto-Updater... OK"
           echo "—————"
