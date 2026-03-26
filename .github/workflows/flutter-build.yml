@@ -468,7 +468,7 @@ jobs:
           sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./libs/portable/Cargo.toml
           sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./src/ui/index.tis
           # Modifier le nom du dossier dans APPDATA (pour éviter conflits avec la version officielle)
-          sed -i -e 's/&APP_NAME\.read()\.unwrap()/"RustDeskLNR"/g' ./libs/hbb_common/src/config.rs
+          sed -i -e 's/&APP_NAME\.read()\.unwrap()/"LNRustDesk"/g' ./libs/hbb_common/src/config.rs
           echo -e "\r🟢 Configuration entreprise... OK"
           echo "—————"
 
