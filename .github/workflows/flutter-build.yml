@@ -370,11 +370,12 @@ jobs:
           # 2. Suppression de la condition bloquante dans common.rs (UI/Update)
           perl -i -0777 -pe 's/pub fn is_custom_client\(\)\s*->\s*bool\s*\{.*?\}/pub fn is_custom_client() -> bool { false }/gs; s/if\s*(?:crate::config::)?is_custom_client\(\)\s*\{\s*return;?\s*\}//gs' ./src/common.rs
           
-          # 3. Validation domaine personnalisé pour la sécurité is_public
-          perl -i -0777 -pe 's/pub fn is_public\(.*?\)\s*->\s*bool\s*\{.*?\}/pub fn is_public(url: \&str) -> bool { url.contains("api.rustdesk.com") || url.contains("listenandresolve.com") }/gs' ./libs/hbb_common/src/config.rs
-          # Remplacement strict "rs-ny.rustdesk.com", "rs-us.rustdesk.com"
-          sed -i -E "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/listenandresolve.com/g" ./libs/hbb_common/src/config.rs
-          sed -i -E "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/listenandresolve.com/g" ./libs/hbb_common/src/websocket.rs
+          # 3. Remplacement des serveurs relais
+          sed -i -E "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.listenandresolve.com/g" ./libs/hbb_common/src/config.rs
+          sed -i -E "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.listenandresolve.com/g" ./libs/hbb_common/src/websocket.rs
+          
+          # 4. Modification de la sécurité is_public dans config.rs
+          perl -i -0777 -pe 's/pub fn is_public\(url: \&str\)\s*->\s*bool\s*\{.*?\}/pub fn is_public(url: \&str) -> bool { url.contains("listenandresolve.com") }/gs' ./libs/hbb_common/src/config.rs
           
           echo -e "\r🟢 Configuration de l'Auto-Updater... OK"
           
