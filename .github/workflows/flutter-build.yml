@@ -469,6 +469,7 @@ jobs:
           sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./src/ui/index.tis
           # Modifier le nom du dossier dans APPDATA (pour éviter conflits avec la version officielle)
           sed -i -e 's/&APP_NAME\.read()\.unwrap()/"LNRustDesk"/g' ./libs/hbb_common/src/config.rs
+          sed -i -e 's/set(BINARY_NAME "rustdesk")/set(BINARY_NAME "lnrustdesk")/g' ./flutter/windows/CMakeLists.txt
           echo -e "\r🟢 Configuration entreprise... OK"
           echo "—————"
 
