@@ -313,60 +313,79 @@ jobs:
           # ==============================================================
           echo "🟠 Injection de LNRUpdateInstallButton et LNRWebsiteButton..."
 
-          # Injection via script Perl inline avec heredoc pour éviter les problèmes d'échappement
-          perl -i -0777 -pe '
-          s~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n[ \t]*\})~$1 . "\n\n" . q{Widget LNRUpdateInstallButton(BuildContext context) {
-              final textColor = Theme.of(context).textTheme.titleLarge?.color;
-              RxBool hover = false.obs;
-              return InkWell(
-                onTap: () async {
-                  try { await rustDeskWinManager.closeAllSubWindows(); } catch(e) {}
+          # Écriture du script Perl dans un fichier temporaire
+          cat > /tmp/inject_buttons.pl << 'PERLSCRIPT'
+          use strict;
+          local $/=undef;
+          my $file = $ARGV[0];
+          open(my $fh, '<', $file) or die $!;
+          my $content = <$fh>;
+          close($fh);
           
-                  final url = "https://listenandresolve.com/rustdesk/api.php?os=windows&ext=msi";
-                  final tempPath = Platform.environment["TEMP"]! + "\\rustdesk_update.msi";
+          my $injection = <<'DART';
           
-                  if (Platform.isWindows) {
-                    final script = "Invoke-WebRequest -Uri '"'"'" + url + "'"'"' -OutFile '"'"'" + tempPath + "'"'"'; Start-Process -FilePath msiexec.exe -ArgumentList '"'"'/i \\"" + tempPath + "\\" /qn'"'"'";
-                    Process.run("powershell", ["-WindowStyle", "Hidden", "-Command", script]);
-                    exit(0);
-                  }
-                },
-                splashColor: Colors.transparent,
-                highlightColor: Colors.transparent,
-                child: Tooltip(
-                  message: "Mettre a jour / Installer",
-                  child: Obx(() => Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: Icon(Icons.system_update_alt, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
-                  )),
-                ),
-                onHover: (value) => hover.value = value,
-              );
-            }
+          Widget LNRUpdateInstallButton(BuildContext context) {
+            final textColor = Theme.of(context).textTheme.titleLarge?.color;
+            RxBool hover = false.obs;
+            return InkWell(
+              onTap: () async {
+                try { await rustDeskWinManager.closeAllSubWindows(); } catch(e) {}
           
-            Widget LNRWebsiteButton(BuildContext context) {
-              final Uri _url = Uri.parse("https://listenandresolve.com");
-              final textColor = Theme.of(context).textTheme.titleLarge?.color;
-              RxBool hover = false.obs;
-              return InkWell(
-                onTap: () async {
-                  if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
-                    throw Exception("Impossible d'"'"'ouvrir $_url");
-                  }
-                },
-                splashColor: Colors.transparent,
-                highlightColor: Colors.transparent,
-                child: Tooltip(
-                  message: "listenandresolve.com",
-                  child: Obx(() => Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: Icon(Icons.language, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
-                  )),
-                ),
-                onHover: (value) => hover.value = value,
-              );
-            }}~se' flutter/lib/desktop/pages/desktop_home_page.dart
-  
+                final url = "https://listenandresolve.com/rustdesk/api.php?os=windows&ext=msi";
+                final tempPath = Platform.environment["TEMP"]! + "\\rustdesk_update.msi";
+          
+                if (Platform.isWindows) {
+                  final script = "Invoke-WebRequest -Uri '" + url + "' -OutFile '" + tempPath + "'; Start-Process -FilePath msiexec.exe -ArgumentList '/i \"" + tempPath + "\" /qn'";
+                  Process.run("powershell", ["-WindowStyle", "Hidden", "-Command", script]);
+                  exit(0);
+                }
+              },
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              child: Tooltip(
+                message: "Mettre à jour / Installer",
+                child: Obx(() => Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Icon(Icons.system_update_alt, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
+                )),
+              ),
+              onHover: (value) => hover.value = value,
+            );
+          }
+          
+          Widget LNRWebsiteButton(BuildContext context) {
+            final Uri _url = Uri.parse("https://listenandresolve.com");
+            final textColor = Theme.of(context).textTheme.titleLarge?.color;
+            RxBool hover = false.obs;
+            return InkWell(
+              onTap: () async {
+                if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+                  throw Exception("Impossible d'ouvrir $_url");
+                }
+              },
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              child: Tooltip(
+                message: "listenandresolve.com",
+                child: Obx(() => Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Icon(Icons.language, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
+                )),
+              ),
+              onHover: (value) => hover.value = value,
+            );
+          }
+          DART
+          
+          $content =~ s~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n[ \t]*\})~$1$injection~s;
+          
+          open(my $out, '>', $file) or die $!;
+          print $out $content;
+          close($out);
+          PERLSCRIPT
+          
+          perl /tmp/inject_buttons.pl flutter/lib/desktop/pages/desktop_home_page.dart
+          
           echo -e "\r🟢 Injection de LNRUpdateInstallButton... OK"
 
           # ==============================================================
