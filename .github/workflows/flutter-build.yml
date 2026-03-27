@@ -493,14 +493,17 @@ jobs:
           echo -e "\r🟢 Configuration des URL... OK"
           echo "—————"
 
-          echo "=== IMPORTS en tête du fichier ==="
-          head -30 flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "=== LIGNES 85-130 ==="
+          sed -n '85,130p' flutter/lib/desktop/pages/desktop_home_page.dart
           
-          echo "=== LIGNES 145-165 ==="
-          sed -n '145,165p' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "=== Recherche de LNRUpdateInstallButton ==="
+          grep -n "LNRUpdateInstallButton\|LNRWebsite\|Widget LNR" flutter/lib/desktop/pages/desktop_home_page.dart
           
-          echo "=== LIGNES 650-665 ==="
-          sed -n '650,665p' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "=== Recherche buildPopupMenu ==="
+          grep -n "buildPopupMenu" flutter/lib/desktop/pages/desktop_home_page.dart
+          
+          echo "=== Nombre total de lignes ==="
+          wc -l flutter/lib/desktop/pages/desktop_home_page.dart
 #=====# CUSTOMIZATION LISTEN AND RESOLVE (WINDOWS)
 
       - name: Install LLVM and Clang
