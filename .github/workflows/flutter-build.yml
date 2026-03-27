@@ -356,15 +356,12 @@ jobs:
           }~sg' flutter/lib/desktop/pages/desktop_home_page.dart
 
           # ==============================================================
-          # Configuration de l'Auto-Updater
-          echo -n "🟠 Configuration de l'Auto-Updater et du Relais..."
+          # Reset de l'Auto-Updater
+          echo -n "🟠 Reset de l'Auto-Updater et du relais..."
           
           # 1. Remplacement de l'URL de l'API (pour l'update)
           sed -i -e "s|https://api.rustdesk.com/version/latest|https://listenandresolve.com/rustdesk/api.php?action=check|g" ./libs/hbb_common/src/lib.rs
-          
-          # 2. Suppression de la condition bloquante dans common.rs (UI/Update)
-          perl -i -0777 -pe 's/pub fn is_custom_client\(\)\s*->\s*bool\s*\{.*?\}/pub fn is_custom_client() -> bool { false }/gs; s/if\s*(?:crate::config::)?is_custom_client\(\)\s*\{\s*return;?\s*\}//gs' ./src/common.rs
-          
+
           # 3. Remplacement des serveurs relais
           sed -i -E "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.listenandresolve.com/g" ./libs/hbb_common/src/config.rs
           sed -i -E "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.listenandresolve.com/g" ./libs/hbb_common/src/websocket.rs
@@ -372,7 +369,7 @@ jobs:
           # 4. Modification de la sécurité is_public dans config.rs
           perl -i -0777 -pe 's/pub fn is_public\(url: \&str\)\s*->\s*bool\s*\{.*?\}/pub fn is_public(url: \&str) -> bool { url.contains("listenandresolve.com") }/gs' ./libs/hbb_common/src/config.rs
           
-          echo -e "\r🟢 Configuration de l'Auto-Updater... OK"
+          echo -e "\r🟢 Reset de l'Auto-Updater et du relais... OK"
           
           # ==============================================================
           # Modifier libs/hbb_common/src/config.rs
