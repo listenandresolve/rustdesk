@@ -312,8 +312,12 @@ jobs:
 
           # ==============================================================
           echo "🟠 Injection de LNRUpdateInstallButton et LNRWebsiteButton..."
-
-          # Injection de nos boutons customisés (Correction de la regex avec \n  \})
+          
+          # AJOUT IMPORTANT : Import de dart:io (Vérifie qu'il ne l'ajoute qu'une fois)
+          perl -i -pe 'print "import \"dart:io\";\n" if $. == 1 && !/^import "dart:io";/' flutter/lib/desktop/pages/desktop_home_page.dart
+          
+          # Injection de nos boutons customisés
+          # (On remet \n  \} pour cibler précisément la fin de la fonction)
           perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRUpdateInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
@@ -325,11 +329,11 @@ jobs:
                 final tempPath = Platform.environment["TEMP"]! + "\\\\rustdesk_update.msi";
                 
                 if (Platform.isWindows) {
-                  // Script PowerShell qui gère le téléchargement et lance msiexec en silencieux (/qn)
-                  final script = "Invoke-WebRequest -Uri '\''" + url + "'\'' -OutFile '\''" + tempPath + "'\''; Start-Process -FilePath msiexec.exe -ArgumentList '\''/i \\"" + tempPath + "\\" /qn'\''";
+                  // Script PowerShell propre utilisant l'\''interpolation Dart (\$url et \$tempPath)
+                  final script = "Invoke-WebRequest -Uri '\''\$url'\'' -OutFile '\''\$tempPath'\''; Start-Process -FilePath msiexec.exe -ArgumentList '\''/i \\\"\$tempPath\\\" /qn'\''";
                   
                   Process.run("powershell", ["-WindowStyle", "Hidden", "-Command", script]);
-                  exit(0); // Suicide immédiat de l'\''app pour laisser l'\''installeur écraser les fichiers
+                  exit(0); // Suicide immédiat de l'\''app
                 }
               },
               splashColor: Colors.transparent,
