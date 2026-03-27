@@ -504,6 +504,12 @@ jobs:
           
           echo "=== Nombre total de lignes ==="
           wc -l flutter/lib/desktop/pages/desktop_home_page.dart
+
+          echo "=== LIGNES 125-145 ==="
+          sed -n '125,145p' flutter/lib/desktop/pages/desktop_home_page.dart
+          
+          echo "=== LIGNES 305-360 ==="
+          sed -n '305,360p' flutter/lib/desktop/pages/desktop_home_page.dart
 #=====# CUSTOMIZATION LISTEN AND RESOLVE (WINDOWS)
 
       - name: Install LLVM and Clang
