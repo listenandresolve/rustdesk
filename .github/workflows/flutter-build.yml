@@ -288,7 +288,7 @@ jobs:
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(translate("Identifiant"), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.5))),
-                      Row(children: [LNRWebsiteButton(context), LNRGotoInstallButton(context), buildPopupMenu(context)]),
+                      Row(children: [LNRWebsiteButton(context), LNRUpdateInstallButton(context), buildPopupMenu(context)]),
                     ],
                   ),
                   SizedBox(height: 6),
