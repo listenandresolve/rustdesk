@@ -181,13 +181,13 @@ jobs:
           # ==============================================================
           echo "🟠 Vide buildHelpCards et supprime buildInstallCard..."
           perl -i -0777 -pe '
-            s/Widget buildHelpCards\(String updateUrl\) \{.*?\n  \}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg;
-            s/Widget buildInstallCard\(.*?\n  \}/ /sg;
+            s/Widget buildHelpCards\(String updateUrl\) \{.*?\n[ \t]*\}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg;
+            s/Widget buildInstallCard\(.*?\n[ \t]*\}/ /sg;
           ' flutter/lib/desktop/pages/desktop_home_page.dart
 
           # ==============================================================
           echo "🟠 Remplacement buildPopupMenu..."
-          perl -i -0777 -pe 's/Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \}/Widget buildPopupMenu(BuildContext context) {
+          perl -i -0777 -pe 's/Widget buildPopupMenu\(BuildContext context\) \{.*?\n[ \t]*\}/Widget buildPopupMenu(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
             return InkWell(
@@ -214,7 +214,7 @@ jobs:
 
           # ==============================================================
           echo "🟠 Remplacement de buildLeftPane..."
-          perl -i -0777 -pe 's/Widget buildLeftPane\(BuildContext context\) \{.*?\n  \}/Widget buildLeftPane(BuildContext context) {
+          perl -i -0777 -pe 's/Widget buildLeftPane\(BuildContext context\) \{.*?\n[ \t]*\}/Widget buildLeftPane(BuildContext context) {
             final isIncomingOnly = bind.isIncomingOnly();
             final isOutgoingOnly = bind.isOutgoingOnly();
             final children = <Widget>[
@@ -264,7 +264,7 @@ jobs:
 
           # ==============================================================
           echo "🟠 Remplacement de buildIDBoard..."
-          perl -i -0777 -pe 's/buildIDBoard\(BuildContext context\) \{.*?\n  \}/buildIDBoard(BuildContext context) {
+          perl -i -0777 -pe 's/buildIDBoard\(BuildContext context\) \{.*?\n[ \t]*\}/buildIDBoard(BuildContext context) {
             final model = gFFI.serverModel;
             return Container(
               margin: const EdgeInsets.only(left: 24, right: 24, bottom: 12),
@@ -313,8 +313,11 @@ jobs:
           # ==============================================================
           echo "🟠 Injection de LNRUpdateInstallButton et LNRWebsiteButton..."
 
+          # AJOUT IMPORTANT : Import de dart:io pour pouvoir exécuter des commandes système et quitter l'app
+          perl -i -pe 'print "import \"dart:io\";\n" if $. == 1 && !/^import "dart:io";/' flutter/lib/desktop/pages/desktop_home_page.dart
+
           # Injection de nos boutons customisés
-          perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRUpdateInstallButton(BuildContext context) {
+          perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n[ \t]*\})~$1\n\nWidget LNRUpdateInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
             return InkWell(
