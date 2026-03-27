@@ -180,9 +180,10 @@ jobs:
 
           # ==============================================================
           echo "🟠 Vide buildHelpCards et supprime buildInstallCard..."
-          perl -i -0777 -pe 's/Widget buildHelpCards\(String updateUrl\) \{.*?\n  \}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg;
-          echo -e "\r🟢 Vide buildHelpCards et supprime buildInstallCard... OK"
-          echo "—————"
+          perl -i -0777 -pe '
+            s/Widget buildHelpCards\(String updateUrl\) \{.*?\n  \}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg;
+            s/Widget buildInstallCard\(.*?\n  \}/ /sg;
+          ' flutter/lib/desktop/pages/desktop_home_page.dart
 
           # ==============================================================
           echo "🟠 Remplacement buildPopupMenu..."
