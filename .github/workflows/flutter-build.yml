@@ -312,10 +312,7 @@ jobs:
 
           # ==============================================================
           echo "🟠 Injection de LNRUpdateInstallButton et LNRWebsiteButton..."
-          
-          # Import de dart:io
-          perl -i -pe 'print "import \"dart:io\";\n" if $. == 1 && !/^import "dart:io";/' flutter/lib/desktop/pages/desktop_home_page.dart
-          
+
           # Injection de nos boutons customisés (Correction de la regex avec \n  \})
           perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRUpdateInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
@@ -495,6 +492,15 @@ jobs:
           sed -i -e "s|https://rustdesk.com/privacy.html|https://listenandresolve.com/rustdesk|" ./flutter/lib/desktop/pages/install_page.dart
           echo -e "\r🟢 Configuration des URL... OK"
           echo "—————"
+
+          echo "=== IMPORTS en tête du fichier ==="
+          head -30 flutter/lib/desktop/pages/desktop_home_page.dart
+          
+          echo "=== LIGNES 145-165 ==="
+          sed -n '145,165p' flutter/lib/desktop/pages/desktop_home_page.dart
+          
+          echo "=== LIGNES 650-665 ==="
+          sed -n '650,665p' flutter/lib/desktop/pages/desktop_home_page.dart
 #=====# CUSTOMIZATION LISTEN AND RESOLVE (WINDOWS)
 
       - name: Install LLVM and Clang
