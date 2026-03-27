@@ -496,17 +496,6 @@ jobs:
           sed -i -e "s|https://rustdesk.com/privacy.html|https://listenandresolve.com/rustdesk|" ./flutter/lib/desktop/pages/install_page.dart
           echo -e "\r🟢 Configuration des URL... OK"
           echo "—————"
-
-          echo "================ 🐛 DEBUG DU FICHIER MODIFIÉ ================"
-          # On affiche 10 lignes avant et 50 lignes après l'injection pour voir la gueule du code
-          grep -n -B 10 -A 50 "Widget LNRUpdateInstallButton" flutter/lib/desktop/pages/desktop_home_page.dart
-          
-          echo "================ 🐛 VERIFICATION DE L'APPEL (ROW) ================"
-          # On cherche où les boutons ont été insérés dans le reste du code
-          grep -n -C 5 "LNRUpdateInstallButton(context)" flutter/lib/desktop/pages/desktop_home_page.dart
-          
-          echo "🛑 ARRÊT VOLONTAIRE DU WORKFLOW POUR DEBUG"
-          exit 1 # <--- C'est cette ligne qui fait planter l'étape et annule la suite du build !
 #=====# CUSTOMIZATION LISTEN AND RESOLVE (WINDOWS)
 
       - name: Install LLVM and Clang
