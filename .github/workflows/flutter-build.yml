@@ -389,7 +389,7 @@ jobs:
           perl -i -0777 -pe 's/pub fn is_public\(url: \&str\)\s*->\s*bool\s*\{.*?\}/pub fn is_public(url: \&str) -> bool { url.contains("listenandresolve.com") }/gs' ./libs/hbb_common/src/config.rs
           
           echo -e "\r🟢 Reset de l'Auto-Updater et du relais... OK"
-          
+
           # ==============================================================
           # Modifier libs/hbb_common/src/config.rs
           echo -n "🟠 Configuration du serveur..."
@@ -497,23 +497,16 @@ jobs:
           echo -e "\r🟢 Configuration des URL... OK"
           echo "—————"
 
-          echo "=== LIGNES 85-130 ==="
-          sed -n '85,130p' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "================ 🐛 DEBUG DU FICHIER MODIFIÉ ================"
+          # On affiche 10 lignes avant et 50 lignes après l'injection pour voir la gueule du code
+          grep -n -B 10 -A 50 "Widget LNRUpdateInstallButton" flutter/lib/desktop/pages/desktop_home_page.dart
           
-          echo "=== Recherche de LNRUpdateInstallButton ==="
-          grep -n "LNRUpdateInstallButton\|LNRWebsite\|Widget LNR" flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "================ 🐛 VERIFICATION DE L'APPEL (ROW) ================"
+          # On cherche où les boutons ont été insérés dans le reste du code
+          grep -n -C 5 "LNRUpdateInstallButton(context)" flutter/lib/desktop/pages/desktop_home_page.dart
           
-          echo "=== Recherche buildPopupMenu ==="
-          grep -n "buildPopupMenu" flutter/lib/desktop/pages/desktop_home_page.dart
-          
-          echo "=== Nombre total de lignes ==="
-          wc -l flutter/lib/desktop/pages/desktop_home_page.dart
-
-          echo "=== LIGNES 125-145 ==="
-          sed -n '125,145p' flutter/lib/desktop/pages/desktop_home_page.dart
-          
-          echo "=== LIGNES 305-360 ==="
-          sed -n '305,360p' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "🛑 ARRÊT VOLONTAIRE DU WORKFLOW POUR DEBUG"
+          exit 1 # <--- C'est cette ligne qui fait planter l'étape et annule la suite du build !
 #=====# CUSTOMIZATION LISTEN AND RESOLVE (WINDOWS)
 
       - name: Install LLVM and Clang
