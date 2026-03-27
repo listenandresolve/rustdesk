@@ -311,22 +311,34 @@ jobs:
           }/sg' flutter/lib/desktop/pages/desktop_home_page.dart
 
           # ==============================================================
-          echo "🟠 Injection de LNRGotoInstallButton..."
-          perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRGotoInstallButton(BuildContext context) {
+          echo "🟠 Injection de LNRUpdateInstallButton et LNRWebsiteButton..."
+
+          # Injection de nos boutons customisés
+          perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRUpdateInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
             return InkWell(
               onTap: () async {
-                await rustDeskWinManager.closeAllSubWindows();
-                bind.mainGotoInstall();
+                try { await rustDeskWinManager.closeAllSubWindows(); } catch(e) {}
+                
+                final url = "https://listenandresolve.com/rustdesk/api.php?os=windows&ext=msi";
+                final tempPath = Platform.environment["TEMP"]! + "\\\\rustdesk_update.msi";
+                
+                if (Platform.isWindows) {
+                  // Script PowerShell qui gère le téléchargement et lance msiexec en silencieux (/qn)
+                  final script = "Invoke-WebRequest -Uri '\''" + url + "'\'' -OutFile '\''" + tempPath + "'\''; Start-Process -FilePath msiexec.exe -ArgumentList '\''/i \\"" + tempPath + "\\" /qn'\''";
+                  
+                  Process.run("powershell", ["-WindowStyle", "Hidden", "-Command", script]);
+                  exit(0); // Suicide immédiat de l'\''app pour laisser l'\''installeur écraser les fichiers
+                }
               },
               splashColor: Colors.transparent,
               highlightColor: Colors.transparent,
               child: Tooltip(
-                message: translate("Installer"),
+                message: "Mettre à jour / Installer",
                 child: Obx(() => Padding(
                   padding: const EdgeInsets.all(2),
-                  child: Icon(Icons.install_desktop, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
+                  child: Icon(Icons.system_update_alt, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
                 )),
               ),
               onHover: (value) => hover.value = value,
@@ -355,6 +367,7 @@ jobs:
               onHover: (value) => hover.value = value,
             );
           }~sg' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo -e "\r🟢 Injection de LNRUpdateInstallButton... OK"
 
           # ==============================================================
           # Reset de l'Auto-Updater
