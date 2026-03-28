@@ -313,12 +313,17 @@ jobs:
           # ==============================================================
           echo "🟠 Injection de LNRUpdateInstallButton et LNRWebsiteButton..."
           
-          # AJOUT IMPORTANT : Import de dart:io (Vérifie qu'il ne l'ajoute qu'une fois)
+          # 1. Import de dart:io au début du fichier (toujours nécessaire pour Platform et exit)
           perl -i -pe 'print "import \"dart:io\";\n" if $. == 1 && !/^import "dart:io";/' flutter/lib/desktop/pages/desktop_home_page.dart
           
-          # Injection de nos boutons customisés
-          # (On remet \n  \} pour cibler précisément la fin de la fonction)
-          perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRUpdateInstallButton(BuildContext context) {
+          # 2. Ajout des widgets à la TOUTE FIN du fichier (méthode 100% sécurisée, sans Regex)
+          # Le 'EOF' entre guillemets empêche Bash d'interpréter les $ et les \
+          cat << 'EOF' >> flutter/lib/desktop/pages/desktop_home_page.dart
+          
+          // ==============================================================
+          // INJECTION CUSTOM LNR (Boutons)
+          // ==============================================================
+          Widget LNRUpdateInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
             return InkWell(
@@ -326,14 +331,15 @@ jobs:
                 try { await rustDeskWinManager.closeAllSubWindows(); } catch(e) {}
                 
                 final url = "https://listenandresolve.com/rustdesk/api.php?os=windows&ext=msi";
-                final tempPath = Platform.environment["TEMP"]! + "\\\\rustdesk_update.msi";
+                // Double antislash requis en Dart pour un seul antislash dans le chemin Windows
+                final tempPath = Platform.environment["TEMP"]! + "\\rustdesk_update.msi";
                 
                 if (Platform.isWindows) {
-                  // Script PowerShell propre utilisant l'\''interpolation Dart (\$url et \$tempPath)
-                  final script = "Invoke-WebRequest -Uri '\''\$url'\'' -OutFile '\''\$tempPath'\''; Start-Process -FilePath msiexec.exe -ArgumentList '\''/i \\\"\$tempPath\\\" /qn'\''";
+                  // L'interpolation de variables de Dart ($url, $tempPath) rend le code beaucoup plus lisible !
+                  final script = "Invoke-WebRequest -Uri '$url' -OutFile '$tempPath'; Start-Process -FilePath msiexec.exe -ArgumentList '/i \"$tempPath\" /qn'";
                   
                   Process.run("powershell", ["-WindowStyle", "Hidden", "-Command", script]);
-                  exit(0); // Suicide immédiat de l'\''app
+                  exit(0); 
                 }
               },
               splashColor: Colors.transparent,
@@ -356,7 +362,7 @@ jobs:
             return InkWell(
               onTap: () async {
                 if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
-                  throw Exception("Impossible d'\''ouvrir \$_url");
+                  throw Exception("Impossible d'ouvrir $_url");
                 }
               },
               splashColor: Colors.transparent,
@@ -370,9 +376,10 @@ jobs:
               ),
               onHover: (value) => hover.value = value,
             );
-          }~sg' flutter/lib/desktop/pages/desktop_home_page.dart
+          }
+          EOF
           
-          echo -e "\r🟢 Injection de LNRUpdateInstallButton... OK"
+          echo -e "\r🟢 Injection de LNRUpdateInstallButton et LNRWebsiteButton... OK"
 
           # ==============================================================
           # Reset de l'Auto-Updater
