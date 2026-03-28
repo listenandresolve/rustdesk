@@ -309,9 +309,9 @@ jobs:
               onTap: () async {
                 try { await rustDeskWinManager.closeAllSubWindows(); } catch (e) {}
                 if (!Platform.isWindows) return;
-                final String url = "https://listenandresolve.com/rustdesk/api.php?os=windows\&ext=msi";
+                const String url = "https://listenandresolve.com/rustdesk/api.php?os=windows\&ext=msi";
                 final String tempPath = Platform.environment["TEMP"]! + "\\\\rustdesk_update.msi";
-                final String script = "Invoke-WebRequest -Uri \x27\$url\x27 -OutFile \x27\$tempPath\x27; Start-Process -FilePath msiexec.exe -ArgumentList \x27/i \"\$tempPath\" /qn\x27";
+                final String script = "Invoke-WebRequest -Uri \x27" + url + "\x27 -OutFile \x27" + tempPath + "\x27; Start-Process -FilePath msiexec.exe -ArgumentList \x27/i \x22" + tempPath + "\x22 /qn\x27";
                 await Process.run("powershell", ["-WindowStyle", "Hidden", "-Command", script]);
                 exit(0);
               },
