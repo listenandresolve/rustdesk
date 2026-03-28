@@ -169,8 +169,11 @@ jobs:
           perl -i -0777 -pe 's/Widget loadLogo\(\) \{.*?\n\}/$ENV{NEW_LOGO}/sg' flutter/lib/common.dart
           echo "—————————"
 
-          echo "🟢 Vidange buildHelpCards + buildInstallCard..."
-          perl -i -0777 -pe 's/Widget buildHelpCards\(String updateUrl\) \{.*?\n  \}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg' flutter/lib/votre_fichier.dart
+          echo "🟢 Vidange buildHelpCards..."
+          perl -i -0777 -pe 's/Widget buildHelpCards\(String updateUrl\) \{.*?\n  Widget buildInstallCard/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }\n\n  Widget buildInstallCard/sg' flutter/lib/desktop_home_page.dart
+          
+          echo "🟢 Vidange buildInstallCard..."
+          perl -i -0777 -pe 's/Widget buildInstallCard\(.*?\{.*?\n  \@override\n  void initState/Widget buildInstallCard() { return Container(); }\n\n  \@override\n  void initState/sg' flutter/lib/desktop_home_page.dart
           echo "—————————"
 
           # ==============================================================
