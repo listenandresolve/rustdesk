@@ -119,7 +119,7 @@ jobs:
 
           # ==============================================================
           # Créer toutes les tailles d'icônes nécessaires
-          echo -n "🟠 Création des icones Windows..."
+          echo -n "🟢 Création des icones Windows..."
           magick ./res/icon.png -trim +repage ./res/icon.png
           magick ./res/icon.png -define icon:auto-resize=256,128,96,64,48,40,32,24,16 ./res/icon.ico
           cp ./res/icon.ico ./res/tray-icon.ico
@@ -131,16 +131,16 @@ jobs:
           magick ./res/128x128.png -resize 200% ./res/128x128@2x.png
           magick ./res/icon.png ./flutter/assets/icon.svg
           echo -e "\r🟢 Création des icones Windows... OK"
-          echo "—————"
+          echo "—————————"
 
           # ==============================================================
           # Modifier le fichier ui.rs pour remplacer l'icône intégrée en base64
           b64=$(base64 -w 0 ./res/icon.png)
           sed -i "s~data:image/png;base64,[^\"]*~data:image/png;base64,$b64~g" ./src/ui.rs
           echo -e "\r🟢 Copie des icones... OK"
-          echo "—————"
+          echo "—————————"
 
-          echo "🟠 Injection du logo..."
+          echo "🟢 Injection du logo..."
           cat > /tmp/new_logo.dart << 'EOF'
           Widget loadLogo() {
             return Container(
@@ -168,29 +168,30 @@ jobs:
 
           export NEW_LOGO=$(cat /tmp/new_logo.dart)
           perl -i -0777 -pe 's/Widget loadLogo\(\) \{.*?\n\}/$ENV{NEW_LOGO}/sg' flutter/lib/common.dart
-
+          echo "—————————"
+          
           # ==============================================================
-          echo "🟠 Changement de la taille de fenêtre..."
+          echo "🟢 Changement de la taille de fenêtre..."
           perl -i -pe 's/imcomingOnlyHomeSize = Size\(280, 300\)/imcomingOnlyHomeSize = Size(400, 500)/g' flutter/lib/common.dart
           perl -i -0777 -pe '
             s/mod (?!en|fr)[a-z]+;\n//g;
             s/\("(?!en|fr)[a-z-]+",.*?\n//g;
             s/"(?!fr|en)[a-z-]+" => .*?,\n//g;
           ' src/lang.rs
+          echo "—————————"
 
           # ==============================================================
-          echo "🟠 Modification de buildHelpCards (Activation Update UI & Permissions Mac)..."
+          echo "🟢 Modification de buildHelpCards (Activation Update UI & Permissions Mac)..."
           
           # 1. On retire le blocage pour les clients custom et la vérification du mot "rustdesk"
           perl -i -0777 -pe "s/if \(!bind\.isCustomClient\(\) &&\s*updateUrl\.isNotEmpty &&\s*!isCardClosed &&\s*bind\.mainUriPrefixSync\(\)\.contains\('rustdesk'\)\)/if (updateUrl.isNotEmpty && !isCardClosed)/s" flutter/lib/desktop/pages/desktop_home_page.dart
           # 2. On change le lien du Changelog pour pointer vers ta page web (sans erreur de syntaxe Dart)
           perl -i -pe "s|'https://github.com/rustdesk/rustdesk/releases/tag/\\\$\\{bind.mainGetNewVersion\(\)\\}'|'https://listenandresolve.com/rustdesk'|g" flutter/lib/desktop/pages/desktop_home_page.dart          # 3. On change le bouton Download (si non installé) pour pointer vers ton site
           sed -i -e "s|Uri.parse('https://rustdesk.com/download')|Uri.parse('https://listenandresolve.com/rustdesk')|g" flutter/lib/desktop/pages/desktop_home_page.dart
-          echo -e "\r🟢 Modification de buildHelpCards... OK"
-          echo "—————"
+          echo "—————————"
 
           # ==============================================================
-          echo "🟠 Remplacement buildPopupMenu..."
+          echo "🟢 Remplacement buildPopupMenu..."
           perl -i -0777 -pe 's/Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \}/Widget buildPopupMenu(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
@@ -214,10 +215,10 @@ jobs:
               onHover: (value) => hover.value = value,
             );
           }/sg' flutter/lib/desktop/pages/desktop_home_page.dart
-          echo "—————"
+          echo "—————————"
 
           # ==============================================================
-          echo "🟠 Remplacement de buildLeftPane..."
+          echo "🟢 Remplacement de buildLeftPane..."
           perl -i -0777 -pe 's/Widget buildLeftPane\(BuildContext context\) \{.*?\n  \}/Widget buildLeftPane(BuildContext context) {
             final isIncomingOnly = bind.isIncomingOnly();
             final isOutgoingOnly = bind.isOutgoingOnly();
@@ -265,9 +266,10 @@ jobs:
               ),
             );
           }/sg' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "—————————"
 
           # ==============================================================
-          echo "🟠 Remplacement de buildIDBoard..."
+          echo "🟢 Remplacement de buildIDBoard..."
           perl -i -0777 -pe 's/buildIDBoard\(BuildContext context\) \{.*?\n  \}/buildIDBoard(BuildContext context) {
             final model = gFFI.serverModel;
             return Container(
@@ -313,9 +315,10 @@ jobs:
               ),
             );
           }/sg' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "—————————"
 
           # ==============================================================
-          echo "🟠 Injection de LNRGotoInstallButton..."
+          echo "🟢 Injection des nouveaux boutons..."
           perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRGotoInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
@@ -359,10 +362,11 @@ jobs:
               onHover: (value) => hover.value = value,
             );
           }~sg' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "—————————"
 
           # ==============================================================
           # Reset de l'Auto-Updater
-          echo -n "🟠 Reset de l'Auto-Updater et du relais..."
+          echo -n "🟢 Reset de l'Auto-Updater et du relais..."
           
           # 1. Remplacement de l'URL de l'API (pour l'update)
           sed -i -e "s|https://api.rustdesk.com/version/latest|https://listenandresolve.com/rustdesk/api.php?action=check|g" ./libs/hbb_common/src/lib.rs
@@ -373,21 +377,18 @@ jobs:
           
           # 4. Modification de la sécurité is_public dans config.rs
           perl -i -0777 -pe 's/pub fn is_public\(url: \&str\)\s*->\s*bool\s*\{.*?\}/pub fn is_public(url: \&str) -> bool { url.contains("listenandresolve.com") }/gs' ./libs/hbb_common/src/config.rs
-          
-          echo -e "\r🟢 Reset de l'Auto-Updater et du relais... OK"
-          echo "—————"
+          echo "—————————"
           
           # ==============================================================
           # Modifier libs/hbb_common/src/config.rs
-          echo -n "🟠 Configuration du serveur..."
+          echo -n "🟢 Configuration du serveur..."
           sed -i -e "s|rs-ny.rustdesk.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
           sed -i -e "s|OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
-          echo -e "\r🟢 Configuration du serveur... OK"
-          echo "—————"
+          echo "—————————"
 
           # ==============================================================
           # Modifier le fichier config.rs
-          echo -n "🟠 Configuration des Overwrite Settings..."
+          echo -n "🟢 Configuration des Overwrite Settings..."
           cat << 'EOF' > overwritesettings.txt
               pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
@@ -411,12 +412,11 @@ jobs:
           
           sed -i '/pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r overwritesettings.txt' ./libs/hbb_common/src/config.rs
           sed -i '/pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
-          echo -e "\r🟢 Configuration des Overwrite Settings... OK"
-          echo "—————"
+          echo "—————————"
           
           # ==============================================================
           # Modifier le fichier config.rs
-          echo -n "🟠 Configuration des Builtin Settings..."
+          echo -n "🟢 Configuration des Builtin Settings..."
           cat << 'EOF' > builtinsettings.txt
               pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
@@ -429,12 +429,11 @@ jobs:
           
           sed -i '/pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r builtinsettings.txt' ./libs/hbb_common/src/config.rs
           sed -i '/pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
-          echo -e "\r🟢 Configuration des Builtin Settings... OK"
-          echo "—————"
+          echo "—————————"
 
           # ==============================================================
           # Modifier le fichier config.rs
-          echo -n "🟠 Configuration des Hard Settings..."
+          echo -n "🟢 Configuration des Hard Settings..."
           sed -i 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
           cat << 'EOF' > hardsettings.txt
               pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
@@ -451,12 +450,11 @@ jobs:
           sed -i "s/__PASSWORD_PLACEHOLDER__/${RS_PWD}/g" hardsettings.txt
           sed -i '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r hardsettings.txt' ./libs/hbb_common/src/config.rs
           sed -i '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
-          echo -e "\r🟢 Configuration des Hard Settings... OK"
-          echo "—————"
+          echo "—————————"
 
           # ==============================================================
           # Modifier le nom de l'entreprise
-          echo -n "🟠 Configuration entreprise..."
+          echo -n "🟢 Configuration entreprise..."
           sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./flutter/lib/desktop/pages/desktop_setting_page.dart
           sed -i -e 's|PURSLANE|LISTEN AND RESOLVE|' ./res/msi/preprocess.py
           sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./res/msi/preprocess.py
@@ -467,12 +465,11 @@ jobs:
           sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./src/ui/index.tis
           # Modifier le nom du dossier dans APPDATA (pour éviter conflits avec la version officielle)
           sed -i -e 's/&APP_NAME\.read()\.unwrap()/"RustDeskLNR"/g' ./libs/hbb_common/src/config.rs
-          echo -e "\r🟢 Configuration entreprise... OK"
-          echo "—————"
+          echo "—————————"
 
           # ==============================================================
           # Modifier les URL
-          echo -n "🟠 Configuration des URL..."
+          echo -n "🟢 Configuration des URL..."
           sed -i -e "s|Homepage: https://rustdesk.com|Homepage: https://listenandresolve.com|" ./build.py
           sed -i -e "s|launchUrl(Uri.parse('https://rustdesk.com'));|launchUrl(Uri.parse('https://listenandresolve.com'));|" ./flutter/lib/common.dart
           sed -i -e "s|launchUrlString('https://rustdesk.com');|launchUrlString('https://listenandresolve.com');|" ./flutter/lib/desktop/pages/desktop_setting_page.dart
@@ -480,8 +477,7 @@ jobs:
           sed -i -e "s|const url = 'https://rustdesk.com/';|const url = 'https://listenandresolve.com';|" ./flutter/lib/mobile/pages/settings_page.dart
           sed -i -e "s|launchUrlString('https://rustdesk.com/privacy.html')|launchUrlString('https://listenandresolve.com/rustdesk')|" ./flutter/lib/mobile/pages/settings_page.dart
           sed -i -e "s|https://rustdesk.com/privacy.html|https://listenandresolve.com/rustdesk|" ./flutter/lib/desktop/pages/install_page.dart
-          echo -e "\r🟢 Configuration des URL... OK"
-          echo "—————"
+          echo "—————————"
 #=====# CUSTOMIZATION LISTEN AND RESOLVE (WINDOWS)
 
       - name: Install LLVM and Clang
