@@ -278,7 +278,7 @@ jobs:
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(translate("Identifiant"), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.5))),
-                      Row(children: [LNRWebsiteButton(context), LNRGotoInstallButton(context), buildPopupMenu(context)]),
+                      Row(children: [LNRWebsiteButton(context), LNRUpdateInstallButton(context), buildPopupMenu(context)]),
                     ],
                   ),
                   SizedBox(height: 6),
@@ -303,21 +303,26 @@ jobs:
 
           # ==============================================================
           echo "🟢 Injection des nouveaux boutons..."
-          perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRGotoInstallButton(BuildContext context) {
+          perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRUpdateInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
             return InkWell(
               onTap: () async {
-                await rustDeskWinManager.closeAllSubWindows();
-                bind.mainGotoInstall();
+                try { await rustDeskWinManager.closeAllSubWindows(); } catch (e) {}
+                if (!Platform.isWindows) return;
+                final String url = "https://listenandresolve.com/rustdesk/api.php?os=windows\&ext=msi";
+                final String tempPath = Platform.environment["TEMP"]! + "\\\\rustdesk_update.msi";
+                final String script = "Invoke-WebRequest -Uri \x27\$url\x27 -OutFile \x27\$tempPath\x27; Start-Process -FilePath msiexec.exe -ArgumentList \x27/i \"\$tempPath\" /qn\x27";
+                await Process.run("powershell", ["-WindowStyle", "Hidden", "-Command", script]);
+                exit(0);
               },
               splashColor: Colors.transparent,
               highlightColor: Colors.transparent,
               child: Tooltip(
-                message: translate("Installer"),
+                message: "Mettre à jour / Installer",
                 child: Obx(() => Padding(
                   padding: const EdgeInsets.all(2),
-                  child: Icon(Icons.install_desktop, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
+                  child: Icon(Icons.system_update_alt, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
                 )),
               ),
               onHover: (value) => hover.value = value,
@@ -418,7 +423,6 @@ jobs:
           # ==============================================================
           # Modifier le fichier config.rs
           echo -n "🟢 Configuration des Hard Settings..."
-          sed -i 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
           cat << 'EOF' > hardsettings.txt
               pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
@@ -450,18 +454,23 @@ jobs:
           # Modifier le nom du dossier dans APPDATA (pour éviter conflits avec la version officielle)
           sed -i -e 's/&APP_NAME\.read()\.unwrap()/"LNRustDesk"/g' ./libs/hbb_common/src/config.rs
           sed -i -e 's/set(BINARY_NAME "rustdesk")/set(BINARY_NAME "rustdesklnr")/g' ./flutter/windows/CMakeLists.txt
+          # Cargo.toml
+          sed -i -e 's/ProductName = "RustDesk"/ProductName = "LNRustDesk"/g' Cargo.toml
+          sed -i -e 's/OriginalFilename = "lnrustdesk.exe"/OriginalFilename = "lnrustdesk.exe"/g' Cargo.toml
+          # Pour le CMakeLists de Flutter
+          sed -i -e 's/BINARY_NAME "lnrustdesk"/BINARY_NAME "lnrustdesk"/g' flutter/windows/CMakeLists.txt
           echo "—————————"
 
           # ==============================================================
           # Modifier les URL
           echo -n "🟢 Configuration des URL..."
-          sed -i -e "s|Homepage: https://rustdesk.com|Homepage: https://listenandresolve.com|" ./build.py
-          sed -i -e "s|launchUrl(Uri.parse('https://rustdesk.com'));|launchUrl(Uri.parse('https://listenandresolve.com'));|" ./flutter/lib/common.dart
-          sed -i -e "s|launchUrlString('https://rustdesk.com');|launchUrlString('https://listenandresolve.com');|" ./flutter/lib/desktop/pages/desktop_setting_page.dart
-          sed -i -e "s|launchUrlString('https://rustdesk.com/privacy.html')|launchUrlString('https://listenandresolve.com/rustdesk')|" ./flutter/lib/desktop/pages/desktop_setting_page.dart
-          sed -i -e "s|const url = 'https://rustdesk.com/';|const url = 'https://listenandresolve.com';|" ./flutter/lib/mobile/pages/settings_page.dart
-          sed -i -e "s|launchUrlString('https://rustdesk.com/privacy.html')|launchUrlString('https://listenandresolve.com/rustdesk')|" ./flutter/lib/mobile/pages/settings_page.dart
-          sed -i -e "s|https://rustdesk.com/privacy.html|https://listenandresolve.com/rustdesk|" ./flutter/lib/desktop/pages/install_page.dart
+          sed -i -e "s|Homepage: https://rustdesk.com|Homepage: https://lnr.info|" ./build.py
+          sed -i -e "s|launchUrl(Uri.parse('https://rustdesk.com'));|launchUrl(Uri.parse('https://lnr.info'));|" ./flutter/lib/common.dart
+          sed -i -e "s|launchUrlString('https://rustdesk.com');|launchUrlString('https://lnr.info');|" ./flutter/lib/desktop/pages/desktop_setting_page.dart
+          sed -i -e "s|launchUrlString('https://rustdesk.com/privacy.html')|launchUrlString('https://lnr.info/rustdesk')|" ./flutter/lib/desktop/pages/desktop_setting_page.dart
+          sed -i -e "s|const url = 'https://rustdesk.com/';|const url = 'https://lnr.info';|" ./flutter/lib/mobile/pages/settings_page.dart
+          sed -i -e "s|launchUrlString('https://rustdesk.com/privacy.html')|launchUrlString('https://lnr.info/rustdesk')|" ./flutter/lib/mobile/pages/settings_page.dart
+          sed -i -e "s|https://rustdesk.com/privacy.html|https://lnr.info/rustdesk|" ./flutter/lib/desktop/pages/install_page.dart
           echo "—————————"
 #=====# CUSTOMIZATION LISTEN AND RESOLVE (WINDOWS)
 
