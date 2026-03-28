@@ -130,14 +130,13 @@ jobs:
           magick ./res/icon.png -resize 128x128 ./res/128x128.png
           magick ./res/128x128.png -resize 200% ./res/128x128@2x.png
           magick ./res/icon.png ./flutter/assets/icon.svg
-          echo -e "\r🟢 Création des icones Windows... OK"
           echo "—————————"
 
           # ==============================================================
           # Modifier le fichier ui.rs pour remplacer l'icône intégrée en base64
           b64=$(base64 -w 0 ./res/icon.png)
           sed -i "s~data:image/png;base64,[^\"]*~data:image/png;base64,$b64~g" ./src/ui.rs
-          echo -e "\r🟢 Copie des icones... OK"
+          echo -e "\r🟢 Copie des icones..."
           echo "—————————"
 
           echo "🟢 Injection du logo..."
@@ -169,25 +168,10 @@ jobs:
           export NEW_LOGO=$(cat /tmp/new_logo.dart)
           perl -i -0777 -pe 's/Widget loadLogo\(\) \{.*?\n\}/$ENV{NEW_LOGO}/sg' flutter/lib/common.dart
           echo "—————————"
-          
-          # ==============================================================
-          echo "🟢 Changement de la taille de fenêtre..."
-          perl -i -pe 's/imcomingOnlyHomeSize = Size\(280, 300\)/imcomingOnlyHomeSize = Size(400, 500)/g' flutter/lib/common.dart
-          perl -i -0777 -pe '
-            s/mod (?!en|fr)[a-z]+;\n//g;
-            s/\("(?!en|fr)[a-z-]+",.*?\n//g;
-            s/"(?!fr|en)[a-z-]+" => .*?,\n//g;
-          ' src/lang.rs
-          echo "—————————"
 
-          # ==============================================================
-          echo "🟢 Modification de buildHelpCards (Activation Update UI & Permissions Mac)..."
-          
-          # 1. On retire le blocage pour les clients custom et la vérification du mot "rustdesk"
-          perl -i -0777 -pe "s/if \(!bind\.isCustomClient\(\) &&\s*updateUrl\.isNotEmpty &&\s*!isCardClosed &&\s*bind\.mainUriPrefixSync\(\)\.contains\('rustdesk'\)\)/if (updateUrl.isNotEmpty && !isCardClosed)/s" flutter/lib/desktop/pages/desktop_home_page.dart
-          # 2. On change le lien du Changelog pour pointer vers ta page web (sans erreur de syntaxe Dart)
-          perl -i -pe "s|'https://github.com/rustdesk/rustdesk/releases/tag/\\\$\\{bind.mainGetNewVersion\(\)\\}'|'https://listenandresolve.com/rustdesk'|g" flutter/lib/desktop/pages/desktop_home_page.dart          # 3. On change le bouton Download (si non installé) pour pointer vers ton site
-          sed -i -e "s|Uri.parse('https://rustdesk.com/download')|Uri.parse('https://listenandresolve.com/rustdesk')|g" flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "🟢 Vidange buildHelpCards + buildInstallCard..."
+          perl -i -0777 -pe '
+            s/Widget buildHelpCards\(String updateUrl\) \{.*?\n  \}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg;
           echo "—————————"
 
           # ==============================================================
@@ -422,7 +406,7 @@ jobs:
                   let mut m = HashMap::new();
                   m.insert("allow-logon-screen-password".to_string(), "Y".to_string());
                   m.insert("allow-https-21114".to_string(), "Y".to_string());
-                  m.insert("hide-help-cards".to_string(), "N".to_string());
+                  m.insert("hide-help-cards".to_string(), "Y".to_string());
                   RwLock::new(m)
               };
           EOF
@@ -464,7 +448,8 @@ jobs:
           sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./libs/portable/Cargo.toml
           sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./src/ui/index.tis
           # Modifier le nom du dossier dans APPDATA (pour éviter conflits avec la version officielle)
-          sed -i -e 's/&APP_NAME\.read()\.unwrap()/"RustDeskLNR"/g' ./libs/hbb_common/src/config.rs
+          sed -i -e 's/&APP_NAME\.read()\.unwrap()/"LNRustDesk"/g' ./libs/hbb_common/src/config.rs
+          sed -i -e 's/set(BINARY_NAME "rustdesk")/set(BINARY_NAME "rustdesklnr")/g' ./flutter/windows/CMakeLists.txt
           echo "—————————"
 
           # ==============================================================
