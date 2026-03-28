@@ -277,7 +277,7 @@ jobs:
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(translate("Identifiant"), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.5))),
-                      Row(children: [LNRWebsiteButton(context), LNRUpdateInstallButton(context), buildPopupMenu(context)]),
+                      Row(children: [LNRWebsiteButton(context), LNRGotoInstallButton(context), buildPopupMenu(context)]),
                     ],
                   ),
                   SizedBox(height: 6),
@@ -302,26 +302,21 @@ jobs:
 
           # ==============================================================
           echo "🟢 Injection des nouveaux boutons..."
-          perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRUpdateInstallButton(BuildContext context) {
+          perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRGotoInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
             return InkWell(
               onTap: () async {
-                try { await rustDeskWinManager.closeAllSubWindows(); } catch (e) {}
-                if (!Platform.isWindows) return;
-                const String url = "https://listenandresolve.com/rustdesk/api.php?os=windows\&ext=msi";
-                final String tempPath = Platform.environment["TEMP"]! + "\\\\rustdesk_update.msi";
-                final String script = "Invoke-WebRequest -Uri \x27" + url + "\x27 -OutFile \x27" + tempPath + "\x27; Start-Process -FilePath msiexec.exe -ArgumentList \x27/i \x22" + tempPath + "\x22 /qn\x27";
-                await Process.run("powershell", ["-WindowStyle", "Hidden", "-Command", script]);
-                exit(0);
+                await rustDeskWinManager.closeAllSubWindows();
+                bind.mainGotoInstall();
               },
               splashColor: Colors.transparent,
               highlightColor: Colors.transparent,
               child: Tooltip(
-                message: "Mettre à jour / Installer",
+                message: translate("Installer"),
                 child: Obx(() => Padding(
                   padding: const EdgeInsets.all(2),
-                  child: Icon(Icons.system_update_alt, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
+                  child: Icon(Icons.install_desktop, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
                 )),
               ),
               onHover: (value) => hover.value = value,
