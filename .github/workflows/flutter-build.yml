@@ -170,8 +170,7 @@ jobs:
           echo "—————————"
 
           echo "🟢 Vidange buildHelpCards + buildInstallCard..."
-          perl -i -0777 -pe '
-            s/Widget buildHelpCards\(String updateUrl\) \{.*?\n  \}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg;
+          perl -i -0777 -pe 's/Widget buildHelpCards\(String updateUrl\) \{.*?\n  \}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg' flutter/lib/votre_fichier.dart
           echo "—————————"
 
           # ==============================================================
