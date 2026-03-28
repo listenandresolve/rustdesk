@@ -136,9 +136,10 @@ jobs:
           # Modifier le fichier ui.rs pour remplacer l'icône intégrée en base64
           b64=$(base64 -w 0 ./res/icon.png)
           sed -i "s~data:image/png;base64,[^\"]*~data:image/png;base64,$b64~g" ./src/ui.rs
-          echo -e "\r🟢 Copie des icones..."
           echo "—————————"
 
+          # ==============================================================
+          # Modification du logo
           echo "🟢 Injection du logo..."
           cat > /tmp/new_logo.dart << 'EOF'
           Widget loadLogo() {
@@ -368,8 +369,8 @@ jobs:
           # ==============================================================
           # Injection du serveur
           echo -n "🟢 Configuration du serveur..."
-          sed -i -e "s|rs-ny.rustdesk.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
-          sed -i -e "s|OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
+          perl -i -pe "s|rs-ny\.rustdesk\.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
+          perl -i -pe "s|OeVuKk5nlHiXp\+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
           echo "—————————"
 
           # ==============================================================
@@ -440,17 +441,18 @@ jobs:
           # ==============================================================
           # Modifier le nom de l'entreprise
           echo -n "🟢 Configuration entreprise..."
-          sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./flutter/lib/desktop/pages/desktop_setting_page.dart
-          sed -i -e 's|PURSLANE|LISTEN AND RESOLVE|' ./res/msi/preprocess.py
-          sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./res/msi/preprocess.py
-          sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./flutter/windows/runner/Runner.rc
-          sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./flutter/windows/runner/Runner.rc
-          sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./Cargo.toml
-          sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./libs/portable/Cargo.toml
-          sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./src/ui/index.tis
+          perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./flutter/lib/desktop/pages/desktop_setting_page.dart
+          perl -i -pe 's|PURSLANE|LISTEN AND RESOLVE|g' ./res/msi/preprocess.py
+          perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./res/msi/preprocess.py
+          perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./flutter/windows/runner/Runner.rc
+          perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./Cargo.toml
+          perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./libs/portable/Cargo.toml
+          perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./src/ui/index.tis
+
           # Modifier le nom du dossier dans APPDATA (pour éviter conflits avec la version officielle)
           sed -i -e 's/&APP_NAME\.read()\.unwrap()/"LNRustDesk"/g' ./libs/hbb_common/src/config.rs
-          # 2. CHANGE LE NOM DU PRODUIT DANS LE MSI
+
+          # CHANGE LE NOM DU PRODUIT DANS LE MSI
           sed -i 's/ProductName = "RustDesk"/ProductName = "LNRustDesk"/g' Cargo.toml
           echo "—————————"
 
@@ -966,41 +968,44 @@ jobs:
           fi
           echo "—————————"
           
-          # ========================================
-          # Modification de flutter/lib/common.dart
+          # ==============================================================
+          # Modification du logo
           echo "🟢 Injection du logo..."
-          # Création d'un fichier temporaire contenant le nouveau code
-          cat > /tmp/new_logo_function.txt << 'EOF'
+          cat > /tmp/new_logo.dart << 'EOF'
           Widget loadLogo() {
             return Container(
-              width: 300,
-              height: 100,
-              margin: EdgeInsets.only(left: 12, right: 12, top: 12),
-              child: FadeInImage.assetNetwork(
-                placeholder: 'assets/logo.png', // Placeholder image while loading
-                image: 'https://listenandresolve.com/rustdesk/client.gif', // URL of the logo
-                fit: BoxFit.contain,
-                imageErrorBuilder: (context, error, stackTrace) {
-                  return Image.asset('assets/icon.png', fit: BoxFit.contain); // Fallback to local asset
-                },
-              ),
-            );
-          }
+              margin: const EdgeInsets.only(left: 24, right: 24, top: 20, bottom: 12),
+              child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      'https://listenandresolve.com/rustdesk/client.webp',
+                      width: double.infinity,
+                      height: 200,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Image.asset(
+                          'assets/logo.png',
+                          width: double.infinity,
+                          height: 200,
+                          fit: BoxFit.contain,
+                        );
+                      },
+                    ),
+                  ),
+                );
+              }
           EOF
-          
-          # Suppression de l'ancienne fonction et insertion de la nouvelle
-          if [ -f "./flutter/lib/common.dart" ]; then
-            awk '
-            BEGIN { printing = 1 }
-            /Widget loadLogo\(\) \{/ { printing = 0; system("cat /tmp/new_logo_function.txt"); }
-            /^}$/ && printing == 0 { printing = 1; next; }
-            printing == 1 { print }
-            ' flutter/lib/common.dart > flutter/lib/common.dart.new
-            
-            # Remplacement du fichier original
-            mv flutter/lib/common.dart.new flutter/lib/common.dart
-          fi
+
+          export NEW_LOGO=$(cat /tmp/new_logo.dart)
+          perl -i -0777 -pe 's/Widget loadLogo\(\) \{.*?\n\}/$ENV{NEW_LOGO}/sg' flutter/lib/common.dart
           echo "—————————"
+
+          # ==============================================================
+          echo "🟢 Vide buildHelpCards et supprime buildInstallCard..."
+          perl -i -0777 -pe '
+            s/Widget buildHelpCards\(String updateUrl\) \{.*?\n  \}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg;
+            s/Widget buildInstallCard\(.*?\n  \}/ /sg;
+          ' flutter/lib/desktop/pages/desktop_home_page.dart
 
           # ==============================================================
           echo "🟢 Remplacement de buildIDBoard..."
@@ -1116,10 +1121,8 @@ jobs:
           # ========================================
           # Modifier libs/hbb_common/src/config.rs
           echo -n "🟢 Configuration du serveur..."
-          if [ -f "./libs/hbb_common/src/config.rs" ]; then
-            perl -i -pe "s|rs-ny\.rustdesk\.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
-            perl -i -pe "s|OeVuKk5nlHiXp\+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
-          fi
+          perl -i -pe "s|rs-ny\.rustdesk\.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
+          perl -i -pe "s|OeVuKk5nlHiXp\+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
           echo "—————————"
 
           # ========================================
@@ -1150,7 +1153,6 @@ jobs:
             sed -i '' '/pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r /tmp/overwritesettings.txt' ./libs/hbb_common/src/config.rs
             sed -i '' '/pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
           fi
-          echo -e "\r🟢 Configuration des Overwrite Settings... OK"
           echo "—————————"
           
           # ========================================
@@ -1170,7 +1172,6 @@ jobs:
             sed -i '' '/pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r /tmp/builtinsettings.txt' ./libs/hbb_common/src/config.rs
             sed -i '' '/pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
           fi
-          echo -e "\r🟢 Configuration des Builtin Settings... OK"
           echo "—————————"
 
           # ========================================
@@ -1196,24 +1197,23 @@ jobs:
             sed -i '' '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r /tmp/hardsettings.txt' ./libs/hbb_common/src/config.rs
             sed -i '' '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
           fi
-          echo -e "\r🟢 Configuration des Hard Settings... OK"
           echo "—————————"
 
           # ========================================
           # Modifier le nom de l'entreprise
           echo -n "🟢 Configuration entreprise..."
           # Modifier le bundle id
-          sed -i '' 's|com.carriez|com.listenandresolve|' ./libs/hbb_common/src/config.rs 
-          sed -i '' 's|com.carriez.|com.listenandresolve.|' ./Cargo.toml
-          sed -i '' 's|com.carriez.|com.listenandresolve.|' ./flutter/macos/Runner/Info.plist
-          sed -i '' 's|com.carriez.|com.listenandresolve.|' ./flutter/macos/Runner/Configs/AppInfo.xcconfig
-          sed -i '' 's|com.carriez.|com.listenandresolve.|' ./flutter/macos/Runner.xcodeproj/project.pbxproj
-          sed -i '' 's|com.carriez.|com.listenandresolve.|' ./src/platform/macos.rs
-          sed -i '' 's|com.carriez.|com.listenandresolve.|' ./src/platform/privileges_scripts/agent.plist
-          sed -i '' 's|com.carriez.|com.listenandresolve.|' ./src/platform/privileges_scripts/daemon.plist
-          sed -i '' 's|com.carriez.|com.listenandresolve.|' ./src/platform/privileges_scripts/install.scpt
-          sed -i '' 's|com.carriez.|com.listenandresolve.|' ./src/platform/privileges_scripts/uninstall.scpt
-          sed -i '' 's|com.carriez.|com.listenandresolve.|' ./src/platform/privileges_scripts/update.scpt
+          perl -i -pe 's|com\.carriez|com.listenandresolve|g' ./libs/hbb_common/src/config.rs
+          perl -i -pe 's|com\.carriez\.|com.listenandresolve.|g' ./Cargo.toml
+          perl -i -pe 's|com\.carriez\.|com.listenandresolve.|g' ./flutter/macos/Runner/Info.plist
+          perl -i -pe 's|com\.carriez\.|com.listenandresolve.|g' ./flutter/macos/Runner/Configs/AppInfo.xcconfig
+          perl -i -pe 's|com\.carriez\.|com.listenandresolve.|g' ./flutter/macos/Runner.xcodeproj/project.pbxproj
+          perl -i -pe 's|com\.carriez\.|com.listenandresolve.|g' ./src/platform/macos.rs
+          perl -i -pe 's|com\.carriez\.|com.listenandresolve.|g' ./src/platform/privileges_scripts/agent.plist
+          perl -i -pe 's|com\.carriez\.|com.listenandresolve.|g' ./src/platform/privileges_scripts/daemon.plist
+          perl -i -pe 's|com\.carriez\.|com.listenandresolve.|g' ./src/platform/privileges_scripts/install.scpt
+          perl -i -pe 's|com\.carriez\.|com.listenandresolve.|g' ./src/platform/privileges_scripts/uninstall.scpt
+          perl -i -pe 's|com\.carriez\.|com.listenandresolve.|g' ./src/platform/privileges_scripts/update.scpt
           echo "—————————"
 
           # ========================================
@@ -1232,7 +1232,6 @@ jobs:
           # Nettoyage final
           echo -n "🟢 Nettoyage des fichiers temporaires..."
           rm -f /tmp/overwritesettings.txt /tmp/builtinsettings.txt /tmp/hardsettings.txt
-          echo -e "\r🟢 Nettoyage terminé... OK"
           echo "—————————"
           
           echo "🟢 Customisation terminée avec succès!"
