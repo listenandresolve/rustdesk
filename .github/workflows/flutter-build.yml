@@ -179,15 +179,19 @@ jobs:
           ' src/lang.rs
 
           # ==============================================================
-          echo "🟠 Vide buildHelpCards et supprime buildInstallCard..."
-          perl -i -0777 -pe '
-            s/Widget buildHelpCards\(String updateUrl\) \{.*?\n[ \t]*\}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg;
-            s/Widget buildInstallCard\(.*?\n[ \t]*\}/ /sg;
-          ' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "🟠 Modification de buildHelpCards (Activation Update UI & Permissions Mac)..."
+          
+          # 1. On retire le blocage pour les clients custom et la vérification du mot "rustdesk"
+          perl -i -0777 -pe "s/if \(!bind\.isCustomClient\(\) &&\s*updateUrl\.isNotEmpty &&\s*!isCardClosed &&\s*bind\.mainUriPrefixSync\(\)\.contains\('rustdesk'\)\)/if (updateUrl.isNotEmpty && !isCardClosed)/s" flutter/lib/desktop/pages/desktop_home_page.dart
+          # 2. On change le lien du Changelog pour pointer vers ta page web (sans erreur de syntaxe Dart)
+          perl -i -pe "s|'https://github.com/rustdesk/rustdesk/releases/tag/\\\$\\{bind.mainGetNewVersion\(\)\\}'|'https://listenandresolve.com/rustdesk'|g" flutter/lib/desktop/pages/desktop_home_page.dart          # 3. On change le bouton Download (si non installé) pour pointer vers ton site
+          sed -i -e "s|Uri.parse('https://rustdesk.com/download')|Uri.parse('https://listenandresolve.com/rustdesk')|g" flutter/lib/desktop/pages/desktop_home_page.dart
+          echo -e "\r🟢 Modification de buildHelpCards... OK"
+          echo "—————"
 
           # ==============================================================
           echo "🟠 Remplacement buildPopupMenu..."
-          perl -i -0777 -pe 's/Widget buildPopupMenu\(BuildContext context\) \{.*?\n[ \t]*\}/Widget buildPopupMenu(BuildContext context) {
+          perl -i -0777 -pe 's/Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \}/Widget buildPopupMenu(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
             return InkWell(
@@ -214,7 +218,7 @@ jobs:
 
           # ==============================================================
           echo "🟠 Remplacement de buildLeftPane..."
-          perl -i -0777 -pe 's/Widget buildLeftPane\(BuildContext context\) \{.*?\n[ \t]*\}/Widget buildLeftPane(BuildContext context) {
+          perl -i -0777 -pe 's/Widget buildLeftPane\(BuildContext context\) \{.*?\n  \}/Widget buildLeftPane(BuildContext context) {
             final isIncomingOnly = bind.isIncomingOnly();
             final isOutgoingOnly = bind.isOutgoingOnly();
             final children = <Widget>[
@@ -264,7 +268,7 @@ jobs:
 
           # ==============================================================
           echo "🟠 Remplacement de buildIDBoard..."
-          perl -i -0777 -pe 's/buildIDBoard\(BuildContext context\) \{.*?\n[ \t]*\}/buildIDBoard(BuildContext context) {
+          perl -i -0777 -pe 's/buildIDBoard\(BuildContext context\) \{.*?\n  \}/buildIDBoard(BuildContext context) {
             final model = gFFI.serverModel;
             return Container(
               margin: const EdgeInsets.only(left: 24, right: 24, bottom: 12),
@@ -288,7 +292,7 @@ jobs:
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(translate("Identifiant"), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.5))),
-                      Row(children: [LNRWebsiteButton(context), LNRUpdateInstallButton(context), buildPopupMenu(context)]),
+                      Row(children: [LNRWebsiteButton(context), LNRGotoInstallButton(context), buildPopupMenu(context)]),
                     ],
                   ),
                   SizedBox(height: 6),
@@ -311,44 +315,22 @@ jobs:
           }/sg' flutter/lib/desktop/pages/desktop_home_page.dart
 
           # ==============================================================
-          echo "🟠 Injection de LNRUpdateInstallButton et LNRWebsiteButton..."
-          
-          # 1. Import de dart:io au début du fichier (toujours nécessaire pour Platform et exit)
-          perl -i -pe 'print "import \"dart:io\";\n" if $. == 1 && !/^import "dart:io";/' flutter/lib/desktop/pages/desktop_home_page.dart
-          
-          # 2. Ajout des widgets à la TOUTE FIN du fichier (méthode 100% sécurisée, sans Regex)
-          # Le 'EOF' entre guillemets empêche Bash d'interpréter les $ et les \
-          cat << 'EOF' >> flutter/lib/desktop/pages/desktop_home_page.dart
-          
-          // ==============================================================
-          // INJECTION CUSTOM LNR (Boutons)
-          // ==============================================================
-          Widget LNRUpdateInstallButton(BuildContext context) {
+          echo "🟠 Injection de LNRGotoInstallButton..."
+          perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRGotoInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
             return InkWell(
               onTap: () async {
-                try { await rustDeskWinManager.closeAllSubWindows(); } catch(e) {}
-                
-                final url = "https://listenandresolve.com/rustdesk/api.php?os=windows&ext=msi";
-                // Double antislash requis en Dart pour un seul antislash dans le chemin Windows
-                final tempPath = Platform.environment["TEMP"]! + "\\rustdesk_update.msi";
-                
-                if (Platform.isWindows) {
-                  // L'interpolation de variables de Dart ($url, $tempPath) rend le code beaucoup plus lisible !
-                  final script = "Invoke-WebRequest -Uri '$url' -OutFile '$tempPath'; Start-Process -FilePath msiexec.exe -ArgumentList '/i \"$tempPath\" /qn'";
-                  
-                  Process.run("powershell", ["-WindowStyle", "Hidden", "-Command", script]);
-                  exit(0); 
-                }
+                await rustDeskWinManager.closeAllSubWindows();
+                bind.mainGotoInstall();
               },
               splashColor: Colors.transparent,
               highlightColor: Colors.transparent,
               child: Tooltip(
-                message: "Mettre à jour / Installer",
+                message: translate("Installer"),
                 child: Obx(() => Padding(
                   padding: const EdgeInsets.all(2),
-                  child: Icon(Icons.system_update_alt, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
+                  child: Icon(Icons.install_desktop, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
                 )),
               ),
               onHover: (value) => hover.value = value,
@@ -362,7 +344,7 @@ jobs:
             return InkWell(
               onTap: () async {
                 if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
-                  throw Exception("Impossible d'ouvrir $_url");
+                  throw Exception("Impossible d'\''ouvrir \$_url");
                 }
               },
               splashColor: Colors.transparent,
@@ -376,10 +358,7 @@ jobs:
               ),
               onHover: (value) => hover.value = value,
             );
-          }
-          EOF
-          
-          echo -e "\r🟢 Injection de LNRUpdateInstallButton et LNRWebsiteButton... OK"
+          }~sg' flutter/lib/desktop/pages/desktop_home_page.dart
 
           # ==============================================================
           # Reset de l'Auto-Updater
@@ -396,7 +375,8 @@ jobs:
           perl -i -0777 -pe 's/pub fn is_public\(url: \&str\)\s*->\s*bool\s*\{.*?\}/pub fn is_public(url: \&str) -> bool { url.contains("listenandresolve.com") }/gs' ./libs/hbb_common/src/config.rs
           
           echo -e "\r🟢 Reset de l'Auto-Updater et du relais... OK"
-
+          echo "—————"
+          
           # ==============================================================
           # Modifier libs/hbb_common/src/config.rs
           echo -n "🟠 Configuration du serveur..."
@@ -486,8 +466,7 @@ jobs:
           sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./libs/portable/Cargo.toml
           sed -i -e 's|Purslane Ltd|Listen and Resolve|' ./src/ui/index.tis
           # Modifier le nom du dossier dans APPDATA (pour éviter conflits avec la version officielle)
-          sed -i -e 's/&APP_NAME\.read()\.unwrap()/"LNRustDesk"/g' ./libs/hbb_common/src/config.rs
-          sed -i -e 's/set(BINARY_NAME "rustdesk")/set(BINARY_NAME "lnrustdesk")/g' ./flutter/windows/CMakeLists.txt
+          sed -i -e 's/&APP_NAME\.read()\.unwrap()/"RustDeskLNR"/g' ./libs/hbb_common/src/config.rs
           echo -e "\r🟢 Configuration entreprise... OK"
           echo "—————"
 
@@ -714,10 +693,3 @@ jobs:
           files: |
             ./SignOutput/rustdesk-*.msi
             ./SignOutput/rustdesk-*.exe
-
-#==================================================
-#
-# MacOS
-#
-#==================================================
-  
