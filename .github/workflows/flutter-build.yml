@@ -355,12 +355,12 @@ jobs:
           # Reset de l'Auto-Updater
           echo -n "🟢 Reset de l'Auto-Updater et du relais..."
           
-          # 1. Remplacement de l'URL de l'API (pour l'update)
-          sed -i -e "s|https://api.rustdesk.com/version/latest|https://listenandresolve.com/rustdesk/api.php?action=check|g" ./libs/hbb_common/src/lib.rs
+          # 1. Remplacement de l'URL de l'API
+          perl -i -pe "s|https://api.rustdesk.com/version/latest|https://listenandresolve.com/rustdesk/api.php?action=check|g" ./libs/hbb_common/src/lib.rs
 
           # 3. Remplacement des serveurs relais
-          sed -i -E "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.listenandresolve.com/g" ./libs/hbb_common/src/config.rs
-          sed -i -E "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.listenandresolve.com/g" ./libs/hbb_common/src/websocket.rs
+          perl -i -pe "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.listenandresolve.com/g" ./libs/hbb_common/src/config.rs
+          perl -i -pe "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.listenandresolve.com/g" ./libs/hbb_common/src/websocket.rs
           
           # 4. Modification de la sécurité is_public dans config.rs
           perl -i -0777 -pe 's/pub fn is_public\(url: \&str\)\s*->\s*bool\s*\{.*?\}/pub fn is_public(url: \&str) -> bool { url.contains("listenandresolve.com") }/gs' ./libs/hbb_common/src/config.rs
@@ -397,10 +397,9 @@ jobs:
               };
           EOF
           
-          sed -i '/pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r overwritesettings.txt' ./libs/hbb_common/src/config.rs
-          sed -i '/pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
+          perl -i -0pe 's|pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);|'"$(cat overwritesettings.txt)"'|g' ./libs/hbb_common/src/config.rs
           echo "—————————"
-          
+
           # ==============================================================
           # Injection des Builtin Settings
           echo -n "🟢 Configuration des Builtin Settings..."
@@ -414,8 +413,7 @@ jobs:
               };
           EOF
           
-          sed -i '/pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r builtinsettings.txt' ./libs/hbb_common/src/config.rs
-          sed -i '/pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
+          perl -i -0pe 's|pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);|'"$(cat builtinsettings.txt)"'|g' ./libs/hbb_common/src/config.rs
           echo "—————————"
 
           # ==============================================================
@@ -433,9 +431,8 @@ jobs:
                   RwLock::new(m)
               };
           EOF
-          sed -i "s/__PASSWORD_PLACEHOLDER__/${RS_PWD}/g" hardsettings.txt
-          sed -i '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r hardsettings.txt' ./libs/hbb_common/src/config.rs
-          sed -i '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
+          perl -i -pe "s/__PASSWORD_PLACEHOLDER__/${RS_PWD}/g" hardsettings.txt
+          perl -i -0pe 's|pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);|'"$(cat hardsettings.txt)"'|g' ./libs/hbb_common/src/config.rs
           echo "—————————"
 
           # ==============================================================
@@ -450,22 +447,22 @@ jobs:
           perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./src/ui/index.tis
 
           # Modifier le nom du dossier dans APPDATA (pour éviter conflits avec la version officielle)
-          sed -i -e 's/&APP_NAME\.read()\.unwrap()/"LNRustDesk"/g' ./libs/hbb_common/src/config.rs
+          perl -i -pe 's|&APP_NAME\.read()\.unwrap()|"LNRustDesk"|g' ./libs/hbb_common/src/config.rs
 
           # CHANGE LE NOM DU PRODUIT DANS LE MSI
-          sed -i 's/ProductName = "RustDesk"/ProductName = "LNRustDesk"/g' Cargo.toml
+          perl -i -pe 's|ProductName = "RustDesk"|ProductName = "LNRustDesk"|g' Cargo.toml
           echo "—————————"
 
           # ==============================================================
           # Modifier les URL
           echo -n "🟢 Configuration des URL..."
-          sed -i -e "s|Homepage: https://rustdesk.com|Homepage: https://lnr.info|" ./build.py
-          sed -i -e "s|launchUrl(Uri.parse('https://rustdesk.com'));|launchUrl(Uri.parse('https://lnr.info'));|" ./flutter/lib/common.dart
-          sed -i -e "s|launchUrlString('https://rustdesk.com');|launchUrlString('https://lnr.info');|" ./flutter/lib/desktop/pages/desktop_setting_page.dart
-          sed -i -e "s|launchUrlString('https://rustdesk.com/privacy.html')|launchUrlString('https://lnr.info/rustdesk')|" ./flutter/lib/desktop/pages/desktop_setting_page.dart
-          sed -i -e "s|const url = 'https://rustdesk.com/';|const url = 'https://lnr.info';|" ./flutter/lib/mobile/pages/settings_page.dart
-          sed -i -e "s|launchUrlString('https://rustdesk.com/privacy.html')|launchUrlString('https://lnr.info/rustdesk')|" ./flutter/lib/mobile/pages/settings_page.dart
-          sed -i -e "s|https://rustdesk.com/privacy.html|https://lnr.info/rustdesk|" ./flutter/lib/desktop/pages/install_page.dart
+          perl -i -pe 's|Homepage: https://rustdesk.com|Homepage: https://lnr.info|g' ./build.py
+          perl -i -pe "s|launchUrl\\(Uri\\.parse\\('https://rustdesk\\.com'\\)\\);|launchUrl(Uri.parse('https://lnr.info'));|g" ./flutter/lib/common.dart
+          perl -i -pe "s|launchUrlString\\('https://rustdesk\\.com'\\);|launchUrlString('https://lnr.info');|g" ./flutter/lib/desktop/pages/desktop_setting_page.dart
+          perl -i -pe "s|launchUrlString\\('https://rustdesk\\.com/privacy\\.html'\\)|launchUrlString('https://lnr.info/rustdesk')|g" ./flutter/lib/desktop/pages/desktop_setting_page.dart
+          perl -i -pe "s|const url = 'https://rustdesk\\.com/';|const url = 'https://lnr.info';|g" ./flutter/lib/mobile/pages/settings_page.dart
+          perl -i -pe "s|launchUrlString\\('https://rustdesk\\.com/privacy\\.html'\\)|launchUrlString('https://lnr.info/rustdesk')|g" ./flutter/lib/mobile/pages/settings_page.dart
+          perl -i -pe 's|https://rustdesk\.com/privacy\.html|https://lnr.info/rustdesk|g' ./flutter/lib/desktop/pages/install_page.dart
           echo "—————————"
 #=====# CUSTOMIZATION LISTEN AND RESOLVE (WINDOWS)
 
@@ -1008,6 +1005,84 @@ jobs:
           ' flutter/lib/desktop/pages/desktop_home_page.dart
 
           # ==============================================================
+          echo "🟢 Remplacement buildPopupMenu..."
+          perl -i -0777 -pe 's/Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \}/Widget buildPopupMenu(BuildContext context) {
+            final textColor = Theme.of(context).textTheme.titleLarge?.color;
+            RxBool hover = false.obs;
+            return InkWell(
+              onTap: DesktopTabPage.onAddSetting,
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              child: Tooltip(
+                message: translate("Settings"),
+                child: Obx(
+                  () => Padding(
+                    padding: const EdgeInsets.all(2),
+                    child: Icon(
+                      Icons.settings,
+                      size: 14,
+                      color: hover.value ? textColor : textColor?.withOpacity(0.4),
+                    ),
+                  ),
+                ),
+              ),
+              onHover: (value) => hover.value = value,
+            );
+          }/sg' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "—————————"
+
+          # ==============================================================
+          echo "🟢 Remplacement de buildLeftPane..."
+          perl -i -0777 -pe 's/Widget buildLeftPane\(BuildContext context\) \{.*?\n  \}/Widget buildLeftPane(BuildContext context) {
+            final isIncomingOnly = bind.isIncomingOnly();
+            final isOutgoingOnly = bind.isOutgoingOnly();
+            final children = <Widget>[
+              if (!isOutgoingOnly) buildPresetPasswordWarning(),
+              if (bind.isCustomClient()) Align(alignment: Alignment.center, child: loadPowered(context)),
+              loadLogo(),
+              if (!isOutgoingOnly) buildIDBoard(context),
+              FutureBuilder<Widget>(
+                future: Future.value(Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
+                builder: (_, data) {
+                  if (data.hasData) {
+                    if (isIncomingOnly && isInHomePage()) {
+                      Future.delayed(Duration(milliseconds: 300), () => _updateWindowSize());
+                    }
+                    return data.data!;
+                  }
+                  return const Offstage();
+                },
+              ),
+              buildPluginEntry(),
+            ];
+            if (isIncomingOnly) {
+              children.addAll([
+                Divider(),
+                OnlineStatusWidget(onSvcStatusChanged: () {
+                  if (isInHomePage()) Future.delayed(Duration(milliseconds: 300), () => _updateWindowSize());
+                }).marginOnly(bottom: 6, right: 6)
+              ]);
+            }
+            return ChangeNotifierProvider.value(
+              value: gFFI.serverModel,
+              child: Container(
+                width: isIncomingOnly ? 300.0 : 200.0,
+                color: Theme.of(context).colorScheme.background,
+                child: Stack(children: [
+                  Column(children: [
+                    SingleChildScrollView(
+                      controller: _leftPaneScrollController,
+                      child: Column(key: _childKey, children: children),
+                    ),
+                    Expanded(child: Container())
+                  ]),
+                ]),
+              ),
+            );
+          }/sg' flutter/lib/desktop/pages/desktop_home_page.dart
+          echo "—————————"
+
+          # ==============================================================
           echo "🟢 Remplacement de buildIDBoard..."
           perl -i -0777 -pe 's/buildIDBoard\(BuildContext context\) \{.*?\n  \}/buildIDBoard(BuildContext context) {
             final model = gFFI.serverModel;
@@ -1107,8 +1182,8 @@ jobs:
           # Reset de l'Auto-Updater
           echo -n "🟢 Reset de l'Auto-Updater et du relais..."
           
-          # 1. Remplacement de l'URL de l'API (pour l'update)
-          perl -i -pe "s|https://api\.rustdesk\.com/version/latest|https://listenandresolve.com/rustdesk/api.php?action=check|g" ./libs/hbb_common/src/lib.rs
+          # 1. Remplacement de l'URL de l'API
+          perl -i -pe "s|https://api.rustdesk.com/version/latest|https://listenandresolve.com/rustdesk/api.php?action=check|g" ./libs/hbb_common/src/lib.rs
 
           # 3. Remplacement des serveurs relais
           perl -i -pe "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.listenandresolve.com/g" ./libs/hbb_common/src/config.rs
@@ -1117,19 +1192,18 @@ jobs:
           # 4. Modification de la sécurité is_public dans config.rs
           perl -i -0777 -pe 's/pub fn is_public\(url: \&str\)\s*->\s*bool\s*\{.*?\}/pub fn is_public(url: \&str) -> bool { url.contains("listenandresolve.com") }/gs' ./libs/hbb_common/src/config.rs
           echo "—————————"
-
-          # ========================================
-          # Modifier libs/hbb_common/src/config.rs
+          
+          # ==============================================================
+          # Injection du serveur
           echo -n "🟢 Configuration du serveur..."
           perl -i -pe "s|rs-ny\.rustdesk\.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
           perl -i -pe "s|OeVuKk5nlHiXp\+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
           echo "—————————"
 
-          # ========================================
+          # ==============================================================
           # Injection des Overwrite Settings
           echo -n "🟢 Configuration des Overwrite Settings..."
-          if [ -f "./libs/hbb_common/src/config.rs" ]; then
-            cat << 'EOF' > /tmp/overwritesettings.txt
+          cat << 'EOF' > overwritesettings.txt
               pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
                   m.insert("api-server".to_string(), "https://rd.listenandresolve.com".to_string());
@@ -1149,17 +1223,14 @@ jobs:
                   RwLock::new(m)
               };
           EOF
-            
-            sed -i '' '/pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r /tmp/overwritesettings.txt' ./libs/hbb_common/src/config.rs
-            sed -i '' '/pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
-          fi
-          echo "—————————"
           
-          # ========================================
+          perl -i -0pe 's|pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);|'"$(cat overwritesettings.txt)"'|g' ./libs/hbb_common/src/config.rs
+          echo "—————————"
+
+          # ==============================================================
           # Injection des Builtin Settings
           echo -n "🟢 Configuration des Builtin Settings..."
-          if [ -f "./libs/hbb_common/src/config.rs" ]; then
-            cat << 'EOF' > /tmp/builtinsettings.txt
+          cat << 'EOF' > builtinsettings.txt
               pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
                   m.insert("allow-logon-screen-password".to_string(), "Y".to_string());
@@ -1168,20 +1239,14 @@ jobs:
                   RwLock::new(m)
               };
           EOF
-            
-            sed -i '' '/pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r /tmp/builtinsettings.txt' ./libs/hbb_common/src/config.rs
-            sed -i '' '/pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
-          fi
+          
+          perl -i -0pe 's|pub static ref BUILTIN_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);|'"$(cat builtinsettings.txt)"'|g' ./libs/hbb_common/src/config.rs
           echo "—————————"
 
-          # ========================================
+          # ==============================================================
           # Injection des Hard Settings
           echo -n "🟢 Configuration des Hard Settings..."
-          if [ -f "./src/lang/en.rs" ]; then
-            sed -i '' 's/"doc_mac_permission", ".*"/"doc_mac_permission", "https:\/\/listenandresolve.com\/rustdesk"/' src/lang/en.rs
-          fi
-          if [ -f "./libs/hbb_common/src/config.rs" ]; then
-            cat << 'EOF' > /tmp/hardsettings.txt
+          cat << 'EOF' > hardsettings.txt
               pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
                   m.insert("conn-type".to_string(), "incoming".to_string());
@@ -1193,10 +1258,38 @@ jobs:
                   RwLock::new(m)
               };
           EOF
-            sed -i '' "s/__PASSWORD_PLACEHOLDER__/${RS_PWD}/g" /tmp/hardsettings.txt
-            sed -i '' '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/r /tmp/hardsettings.txt' ./libs/hbb_common/src/config.rs
-            sed -i '' '/pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();/d' ./libs/hbb_common/src/config.rs
-          fi
+          perl -i -pe "s/__PASSWORD_PLACEHOLDER__/${RS_PWD}/g" hardsettings.txt
+          perl -i -0pe 's|pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);|'"$(cat hardsettings.txt)"'|g' ./libs/hbb_common/src/config.rs
+          echo "—————————"
+
+          # ==============================================================
+          # Modifier le nom de l'entreprise
+          echo -n "🟢 Configuration entreprise..."
+          perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./flutter/lib/desktop/pages/desktop_setting_page.dart
+          perl -i -pe 's|PURSLANE|LISTEN AND RESOLVE|g' ./res/msi/preprocess.py
+          perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./res/msi/preprocess.py
+          perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./flutter/windows/runner/Runner.rc
+          perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./Cargo.toml
+          perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./libs/portable/Cargo.toml
+          perl -i -pe 's|Purslane Ltd|Listen and Resolve|g' ./src/ui/index.tis
+
+          # Modifier le nom du dossier dans APPDATA (pour éviter conflits avec la version officielle)
+          perl -i -pe 's|&APP_NAME\.read()\.unwrap()|"LNRustDesk"|g' ./libs/hbb_common/src/config.rs
+
+          # CHANGE LE NOM DU PRODUIT DANS LE MSI
+          perl -i -pe 's|ProductName = "RustDesk"|ProductName = "LNRustDesk"|g' Cargo.toml
+          echo "—————————"
+
+          # ==============================================================
+          # Modifier les URL
+          echo -n "🟢 Configuration des URL..."
+          perl -i -pe 's|Homepage: https://rustdesk.com|Homepage: https://lnr.info|g' ./build.py
+          perl -i -pe "s|launchUrl\\(Uri\\.parse\\('https://rustdesk\\.com'\\)\\);|launchUrl(Uri.parse('https://lnr.info'));|g" ./flutter/lib/common.dart
+          perl -i -pe "s|launchUrlString\\('https://rustdesk\\.com'\\);|launchUrlString('https://lnr.info');|g" ./flutter/lib/desktop/pages/desktop_setting_page.dart
+          perl -i -pe "s|launchUrlString\\('https://rustdesk\\.com/privacy\\.html'\\)|launchUrlString('https://lnr.info/rustdesk')|g" ./flutter/lib/desktop/pages/desktop_setting_page.dart
+          perl -i -pe "s|const url = 'https://rustdesk\\.com/';|const url = 'https://lnr.info';|g" ./flutter/lib/mobile/pages/settings_page.dart
+          perl -i -pe "s|launchUrlString\\('https://rustdesk\\.com/privacy\\.html'\\)|launchUrlString('https://lnr.info/rustdesk')|g" ./flutter/lib/mobile/pages/settings_page.dart
+          perl -i -pe 's|https://rustdesk\.com/privacy\.html|https://lnr.info/rustdesk|g' ./flutter/lib/desktop/pages/install_page.dart
           echo "—————————"
 
           # ========================================
@@ -1217,24 +1310,10 @@ jobs:
           echo "—————————"
 
           # ========================================
-          # Modifier les URL
-          echo -n "🟢 Configuration des URL..."
-          [ -f "./build.py" ] && sed -i '' -e "s|Homepage: https://rustdesk.com|Homepage: https://listenandresolve.com|" ./build.py
-          [ -f "./flutter/lib/common.dart" ] && sed -i '' -e "s|launchUrl(Uri.parse('https://rustdesk.com'));|launchUrl(Uri.parse('https://listenandresolve.com'));|" ./flutter/lib/common.dart
-          [ -f "./flutter/lib/desktop/pages/desktop_setting_page.dart" ] && sed -i '' -e "s|launchUrlString('https://rustdesk.com');|launchUrlString('https://listenandresolve.com');|" ./flutter/lib/desktop/pages/desktop_setting_page.dart
-          [ -f "./flutter/lib/desktop/pages/desktop_setting_page.dart" ] && sed -i '' -e "s|launchUrlString('https://rustdesk.com/privacy.html')|launchUrlString('https://listenandresolve.com/rustdesk')|" ./flutter/lib/desktop/pages/desktop_setting_page.dart
-          [ -f "./flutter/lib/mobile/pages/settings_page.dart" ] && sed -i '' -e "s|const url = 'https://rustdesk.com/';|const url = 'https://listenandresolve.com';|" ./flutter/lib/mobile/pages/settings_page.dart
-          [ -f "./flutter/lib/mobile/pages/settings_page.dart" ] && sed -i '' -e "s|launchUrlString('https://rustdesk.com/privacy.html')|launchUrlString('https://listenandresolve.com/rustdesk')|" ./flutter/lib/mobile/pages/settings_page.dart
-          [ -f "./flutter/lib/desktop/pages/install_page.dart" ] && sed -i '' -e "s|https://rustdesk.com/privacy.html|https://listenandresolve.com/rustdesk|" ./flutter/lib/desktop/pages/install_page.dart
-          echo "—————————"
-
-          # ========================================
           # Nettoyage final
           echo -n "🟢 Nettoyage des fichiers temporaires..."
           rm -f /tmp/overwritesettings.txt /tmp/builtinsettings.txt /tmp/hardsettings.txt
           echo "—————————"
-          
-          echo "🟢 Customisation terminée avec succès!"
 #=====# CUSTOMIZATION LISTEN AND RESOLVE
 
       - name: Setup vcpkg with Github Actions binary cache
