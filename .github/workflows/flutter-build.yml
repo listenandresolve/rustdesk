@@ -431,7 +431,8 @@ jobs:
                   RwLock::new(m)
               };
           EOF
-          perl -i -pe "s/__PASSWORD_PLACEHOLDER__|${RS_PWD}|g" hardsettings.txt
+          perl -i -pe 's/__PASSWORD_PLACEHOLDER__/$ENV{RS_PWD}/g' hardsettings.txt
+          perl -i -pe 's/@/\\@/g' hardsettings.txt
           perl -i -0pe 's|pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);|'"$(cat hardsettings.txt)"'|g' ./libs/hbb_common/src/config.rs
           echo "—————————"
 
@@ -1258,7 +1259,8 @@ jobs:
                   RwLock::new(m)
               };
           EOF
-          perl -i -pe "s/__PASSWORD_PLACEHOLDER__|${RS_PWD}|g" hardsettings.txt
+          perl -i -pe 's/__PASSWORD_PLACEHOLDER__/$ENV{RS_PWD}/g' hardsettings.txt
+          perl -i -pe 's/@/\\@/g' hardsettings.txt
           perl -i -0pe 's|pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);|'"$(cat hardsettings.txt)"'|g' ./libs/hbb_common/src/config.rs
           echo "—————————"
 
