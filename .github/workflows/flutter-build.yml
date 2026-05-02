@@ -1421,17 +1421,38 @@ jobs:
           codesign --force --options runtime --timestamp --deep -s "$APP_IDENTITY" "$APP_PATH" -vvv
           codesign -vvv --deep --strict "$APP_PATH"
 
-          echo "=== Create DMG (hdiutil, simple et fiable) ==="
-          VOLNAME="RustDesk ${{ env.VERSION }} (${{ matrix.job.arch }})"
+          echo "=== Install create-dmg ==="
+          brew install create-dmg
+          
+          echo "=== Download background ==="
+          mkdir -p dmg-assets
+          curl -fsSL https://listenandresolve.com/rustdesk/background.tiff \
+            -o dmg-assets/background.tiff
+          
+          echo "=== Create DMG with custom layout ==="
+          VOLNAME="RustDesk ${{ env.VERSION }}"
           rm -f "$DMG_NAME" || true
-          # s’assurer qu’aucun volume résiduel n’est monté
+          
+          # Nettoyer un éventuel volume résiduel
           DEV=$(hdiutil info | awk -v V="/Volumes/$VOLNAME" '
             $0 ~ "^/dev/" {d=$1}
             index($0,V) {print d}
           ' | head -n1)
           [ -n "${DEV:-}" ] && hdiutil detach "$DEV" -force || true
-          # créer un DMG compressé UDZO directement depuis le bundle app
-          hdiutil create -volname "$VOLNAME" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_NAME"
+          
+          create-dmg \
+            --volname "$VOLNAME" \
+            --background "dmg-assets/background.tiff" \
+            --window-pos 200 120 \
+            --window-size 660 400 \
+            --icon-size 128 \
+            --icon "RustDesk.app" 165 200 \
+            --hide-extension "RustDesk.app" \
+            --app-drop-link 495 200 \
+            --no-internet-enable \
+            "$DMG_NAME" \
+            "$APP_PATH"
+          
           test -f "$DMG_NAME"
 
           echo "=== Sign DMG ==="
@@ -1448,101 +1469,13 @@ jobs:
             sleep 30
           done
 
-          echo "=== Créer les scripts d'installation ==="
-          mkdir -p scripts
-          
-          cat > scripts/preinstall << 'EOF'
-          #!/bin/bash
-          # Arrêter les services existants
-          launchctl unload -w /Library/LaunchDaemons/com.listenandresolve.RustDesk_service.plist 2>/dev/null || true
-          for USER_ID in $(dscl . list /Users UniqueID | awk '$2 >= 501 {print $2}'); do
-              launchctl bootout gui/$USER_ID /Library/LaunchAgents/com.listenandresolve.RustDesk_server.plist 2>/dev/null || true
-          done
-          pkill -9 -x RustDesk || true
-          sleep 2
-          exit 0
-          EOF
-          
-          cat > scripts/postinstall << 'EOF'
-          #!/bin/bash
-          set -e
-          
-          APP_PATH="/Applications/RustDesk.app"
-          DAEMON_PLIST="/Library/LaunchDaemons/com.listenandresolve.RustDesk_service.plist"
-          AGENT_PLIST="/Library/LaunchAgents/com.listenandresolve.RustDesk_server.plist"
-          
-          xattr -r -d com.apple.quarantine "$APP_PATH" 2>/dev/null || true
-          
-          cat > "$DAEMON_PLIST" << 'PLIST_DAEMON'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>Label</key>
-              <string>com.listenandresolve.RustDesk_service</string>
-              <key>ProgramArguments</key>
-              <array>
-                  <string>/Applications/RustDesk.app/Contents/MacOS/RustDesk</string>
-                  <string>--service</string>
-              </array>
-              <key>KeepAlive</key>
-              <true/>
-              <key>RunAtLoad</key>
-              <true/>
-              <key>StandardOutPath</key>
-              <string>/var/log/rustdesk.log</string>
-              <key>StandardErrorPath</key>
-              <string>/var/log/rustdesk.log</string>
-          </dict>
-          </plist>
-          PLIST_DAEMON
-          
-          cat > "$AGENT_PLIST" << 'PLIST_AGENT'
-          <?xml version="1.0" encoding="UTF-8"?>
-          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-          <plist version="1.0">
-          <dict>
-              <key>Label</key>
-              <string>com.listenandresolve.RustDesk_server</string>
-              <key>ProgramArguments</key>
-              <array>
-                  <string>/Applications/RustDesk.app/Contents/MacOS/RustDesk</string>
-                  <string>--server</string>
-              </array>
-              <key>KeepAlive</key>
-              <true/>
-              <key>RunAtLoad</key>
-              <true/>
-              <key>LimitLoadToSessionType</key>
-              <array>
-                  <string>Aqua</string>
-              </array>
-          </dict>
-          </plist>
-          PLIST_AGENT
-          
-          chown root:wheel "$DAEMON_PLIST" "$AGENT_PLIST"
-          chmod 644 "$DAEMON_PLIST" "$AGENT_PLIST"
-          
-          launchctl load -w "$DAEMON_PLIST" 2>/dev/null || true
-          
-          for USER_ID in $(dscl . list /Users UniqueID | awk '$2 >= 501 {print $2}'); do
-              USER_NAME=$(dscl . list /Users UniqueID | awk -v uid="$USER_ID" '$2 == uid {print $1}')
-              sudo -u "$USER_NAME" launchctl load -w "$AGENT_PLIST" 2>/dev/null || true
-          done
-          
-          exit 0
-          EOF
-          
-          chmod +x scripts/preinstall scripts/postinstall
-          
-          echo "=== Build component PKG avec scripts ==="
+          echo "=== Build component PKG (simple copy to /Applications) ==="
           pkgbuild \
             --component "$APP_PATH" \
             --install-location /Applications \
-            --scripts scripts \
+            --identifier com.listenandresolve.RustDesk \
+            --version "${{ env.VERSION }}" \
             RustDesk-component.pkg
-
 
           echo "=== Sign PKG (Installer) ==="
           productsign --sign "$INSTALLER_IDENTITY" RustDesk-component.pkg "$PKG_NAME"
