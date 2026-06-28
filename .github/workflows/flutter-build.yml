@@ -121,19 +121,24 @@ jobs:
           RS_PWD: "${{ secrets.RS_PWD }}"
         shell: bash
         run: |
-          # Installer ImageMagick sur ARM64 (non préinstallé sur windows-11-arm)
           if [[ "${{ matrix.job.arch }}" == "aarch64" ]]; then
-            choco install imagemagick.app -y --no-progress --install-arguments="ADDLOCAL=ALL" > /dev/null
-            # Trouver le chemin réel d'installation
-            IM_PATH=$(find "/c/Program Files/" -name "magick.exe" 2>/dev/null | head -1 | xargs dirname)
-            echo "ImageMagick installé dans : $IM_PATH"
-            echo "$IM_PATH" >> "$GITHUB_PATH"
-            export PATH="$IM_PATH:$PATH"
+            choco install imagemagick.app -y --no-progress --install-arguments="ADDLOCAL=ALL"
+            # Chercher magick.exe dans les emplacements habituels de choco
+            for dir in \
+              "/c/Program Files/ImageMagick-7.Q16-HDRI" \
+              "/c/Program Files/ImageMagick-7.Q16" \
+              "/c/ProgramData/chocolatey/bin" \
+              "/c/tools/imagemagick"; do
+              if [ -f "$dir/magick.exe" ]; then
+                echo "ImageMagick trouvé dans : $dir"
+                export PATH="$dir:$PATH"
+                echo "$dir" >> "$GITHUB_PATH"
+                break
+              fi
+            done
           fi
 
-          # Vérification
-          which magick || echo "magick introuvable"
-          magick --version || echo "magick KO"
+          which magick && magick --version || echo "⚠️ magick introuvable"
           
           # ==============================================================
           # Télécharger le PNG avec options SSL
