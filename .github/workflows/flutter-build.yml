@@ -122,23 +122,15 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ matrix.job.arch }}" == "aarch64" ]]; then
-            choco install imagemagick.app -y --no-progress --install-arguments="ADDLOCAL=ALL"
-            # Chercher magick.exe dans les emplacements habituels de choco
-            for dir in \
-              "/c/Program Files/ImageMagick-7.Q16-HDRI" \
-              "/c/Program Files/ImageMagick-7.Q16" \
-              "/c/ProgramData/chocolatey/bin" \
-              "/c/tools/imagemagick"; do
-              if [ -f "$dir/magick.exe" ]; then
-                echo "ImageMagick trouvé dans : $dir"
-                export PATH="$dir:$PATH"
-                echo "$dir" >> "$GITHUB_PATH"
-                break
-              fi
-            done
+            IM_VER="7.1.2-26"
+            curl -fsSL -o im.7z \
+              "https://github.com/ImageMagick/ImageMagick/releases/download/${IM_VER}/ImageMagick-${IM_VER}-portable-Q16-arm64.7z"
+            7z x im.7z -o"$HOME/imagemagick" -y
+            export PATH="$HOME/imagemagick:$PATH"
+            echo "$HOME/imagemagick" >> "$GITHUB_PATH"
           fi
-
-          which magick && magick --version || echo "⚠️ magick introuvable"
+          magick --version
+          magick identify ./res/icon.png   # décode PNG sans broncher, natif
           
           # ==============================================================
           # Télécharger le PNG avec options SSL
