@@ -124,8 +124,16 @@ jobs:
           # Installer ImageMagick sur ARM64 (non préinstallé sur windows-11-arm)
           if [[ "${{ matrix.job.arch }}" == "aarch64" ]]; then
             choco install imagemagick.app -y --no-progress --install-arguments="ADDLOCAL=ALL" > /dev/null
-            export PATH="/c/Program Files/ImageMagick-7.Q16-HDRI:$PATH"
+            # Trouver le chemin réel d'installation
+            IM_PATH=$(find "/c/Program Files/" -name "magick.exe" 2>/dev/null | head -1 | xargs dirname)
+            echo "ImageMagick installé dans : $IM_PATH"
+            echo "$IM_PATH" >> "$GITHUB_PATH"
+            export PATH="$IM_PATH:$PATH"
           fi
+
+          # Vérification
+          which magick || echo "magick introuvable"
+          magick --version || echo "magick KO"
           
           # ==============================================================
           # Télécharger le PNG avec options SSL
