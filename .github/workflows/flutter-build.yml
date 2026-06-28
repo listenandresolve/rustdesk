@@ -121,6 +121,12 @@ jobs:
           RS_PWD: "${{ secrets.RS_PWD }}"
         shell: bash
         run: |
+          # Installer ImageMagick sur ARM64 (non préinstallé sur windows-11-arm)
+          if [[ "${{ matrix.job.arch }}" == "aarch64" ]]; then
+            choco install imagemagick.app -y --no-progress --install-arguments="ADDLOCAL=ALL" > /dev/null
+            export PATH="/c/Program Files/ImageMagick-7.Q16-HDRI:$PATH"
+          fi
+          
           # ==============================================================
           # Télécharger le PNG avec options SSL
           if ! curl -k -L --tlsv1.2 --proto =https --ssl-reqd \
