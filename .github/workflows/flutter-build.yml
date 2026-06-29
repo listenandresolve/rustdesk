@@ -127,6 +127,18 @@ jobs:
         shell: bash
         run: |
           # ==============================================================
+          # ARM64 ImageMagick
+          if [[ "${{ matrix.job.arch }}" == "aarch64" ]]; then
+            IM_VER="7.1.2-26"
+            curl -fsSL -o im.7z \
+              "https://github.com/ImageMagick/ImageMagick/releases/download/${IM_VER}/ImageMagick-${IM_VER}-portable-Q16-arm64.7z"
+            7z x im.7z -o"$HOME/imagemagick" -y
+            export PATH="$HOME/imagemagick:$PATH"
+            echo "$HOME/imagemagick" >> "$GITHUB_PATH"
+          fi
+          magick identify ./res/icon.png   # décode PNG
+          
+          # ==============================================================
           # Télécharger le PNG avec options SSL
           if ! curl -k -L --tlsv1.2 --proto =https --ssl-reqd \
             -H "User-Agent: Mozilla/5.0" \
