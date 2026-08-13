@@ -343,12 +343,13 @@ jobs:
 
           # ==============================================================
           echo "🟢 Injection des nouveaux boutons (Windows)..."
+          perl -i -pe 's~let stop = Config::get_option\("stop-service"\) == "Y";~let stop = Config::get_option("stop-service") == "Y" || Config::get_option("no-service") == "Y";~' ./src/platform/windows.rs
           perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRGotoInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
             Future<void> doInstall(bool withService) async {
               await rustDeskWinManager.closeAllSubWindows();
-              await bind.mainSetOption(key: "stop-service", value: withService ? "" : "Y");
+              await bind.mainSetOption(key: "no-service", value: withService ? "" : "Y");
               bind.installInstallMe(
                   options: "desktopicon startmenu",
                   path: bind.installInstallPath());
