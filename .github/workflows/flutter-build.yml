@@ -373,12 +373,10 @@ jobs:
             RxBool hover = false.obs;
             return InkWell(
               onTap: () async {
-                if (!bind.mainIsInstalled()) {
-                  showToast(translate("Not installed"));
-                  return;
-                }
                 await rustDeskWinManager.closeAllSubWindows();
-                await Process.start(Platform.resolvedExecutable, ["--uninstall"], mode: ProcessStartMode.detached);
+                bind.installInstallMe(
+                    options: "desktopicon startmenu",
+                    path: bind.installInstallPath());
               },
               splashColor: Colors.transparent,
               highlightColor: Colors.transparent,
