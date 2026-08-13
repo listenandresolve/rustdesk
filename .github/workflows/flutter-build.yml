@@ -346,14 +346,18 @@ jobs:
           perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRGotoInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
+            Future<void> doInstall(bool withService) async {
+              await rustDeskWinManager.closeAllSubWindows();
+              await bind.mainSetOption(key: "stop-service", value: withService ? "" : "Y");
+              bind.installInstallMe(
+                  options: "desktopicon startmenu",
+                  path: bind.installInstallPath());
+            }
             return InkWell(
-              onTap: () async {
-                await rustDeskWinManager.closeAllSubWindows();
-                if (bind.mainIsInstalled()) {
-                  bind.mainUpdateMe();
-                } else {
-                  bind.mainGotoInstall();
-                }
+              onTap: () => doInstall(true),
+              onLongPress: () async {
+                showToast(translate("Installation sans service"));
+                await doInstall(false);
               },
               splashColor: Colors.transparent,
               highlightColor: Colors.transparent,
