@@ -344,6 +344,8 @@ jobs:
           # ==============================================================
           echo "🟢 Injection des nouveaux boutons (Windows)..."
           perl -i -pe 's~let stop = Config::get_option\("stop-service"\) == "Y";~let stop = Config::get_option("stop-service") == "Y" || Config::get_option("no-service") == "Y";~' ./src/platform/windows.rs
+          perl -i -pe 's~if Config::get_option\("stop-service"\) != "Y" \{~if Config::get_option("stop-service") != "Y" \&\& Config::get_option("no-service") != "Y" {~' ./src/platform/windows.rs
+          
           perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRGotoInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
@@ -378,10 +380,12 @@ jobs:
             RxBool hover = false.obs;
             return InkWell(
               onTap: () async {
+                if (!bind.mainIsInstalled()) {
+                  showToast(translate("Not installed"));
+                  return;
+                }
                 await rustDeskWinManager.closeAllSubWindows();
-                bind.installInstallMe(
-                    options: "desktopicon startmenu",
-                    path: bind.installInstallPath());
+                await Process.start(Platform.resolvedExecutable, ["--uninstall"], mode: ProcessStartMode.detached);
               },
               splashColor: Colors.transparent,
               highlightColor: Colors.transparent,
