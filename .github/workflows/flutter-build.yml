@@ -318,7 +318,7 @@ jobs:
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(translate("Identifiant"), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.5))),
-                      Row(children: [LNRWebsiteButton(context), LNRGotoInstallButton(context), buildPopupMenu(context)]),
+                      Row(children: [LNRWebsiteButton(context), LNRUpdateButton(context), LNRGotoInstallButton(context), buildPopupMenu(context)]),
                     ],
                   ),
                   SizedBox(height: 6),
@@ -346,7 +346,30 @@ jobs:
           perl -i -pe 's~let stop = Config::get_option\("stop-service"\) == "Y";~let stop = Config::get_option("stop-service") == "Y" || Config::get_option("no-service") == "Y";~' ./src/platform/windows.rs
           perl -i -pe 's~if Config::get_option\("stop-service"\) != "Y" \{~if Config::get_option("stop-service") != "Y" \&\& Config::get_option("no-service") != "Y" {~' ./src/platform/windows.rs
           
-          perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRGotoInstallButton(BuildContext context) {
+          perl -i -0777 -pe 's~(Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \})~$1\n\nWidget LNRWebsiteButton(BuildContext context) {
+            final Uri _url = Uri.parse("https://listenandresolve.com");
+            final textColor = Theme.of(context).textTheme.titleLarge?.color;
+            RxBool hover = false.obs;
+            return InkWell(
+              onTap: () async {
+                if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
+                  throw Exception("Impossible d'\''ouvrir \$_url");
+                }
+              },
+              splashColor: Colors.transparent,
+              highlightColor: Colors.transparent,
+              child: Tooltip(
+                message: "listenandresolve.com",
+                child: Obx(() => Padding(
+                  padding: const EdgeInsets.all(2),
+                  child: Icon(Icons.language, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
+                )),
+              ),
+              onHover: (value) => hover.value = value,
+            );
+          }
+          
+          Widget LNRGotoInstallButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
             Future<void> doInstall(bool withService) async {
@@ -375,48 +398,33 @@ jobs:
             );
           }
 
-          Widget LNRUninstallButton(BuildContext context) {
+          Widget LNRUpdateButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
             RxBool hover = false.obs;
+            if (!bind.mainIsInstalled() || bind.mainGetOption(key: "no-service") == "Y") {
+              return const Offstage();
+            }
             return InkWell(
               onTap: () async {
-                if (!bind.mainIsInstalled()) {
-                  showToast(translate("Not installed"));
+                final arch = Platform.environment["PROCESSOR_ARCHITECTURE"] == "ARM64" ? "aarch64" : "x86_64";
+                final url = "https://github.com/listenandresolve/rustdesk/releases/download/nightly/lnrdesk-" + arch + ".exe";
+                final out = (Platform.environment["TEMP"] ?? "C:\\Windows\\Temp") + "\\lnrdesk-update.exe";
+                showToast(translate("Downloading"));
+                final r = await Process.run("curl.exe", ["-L", "-f", "-o", out, url]);
+                if (r.exitCode != 0) {
+                  showToast(translate("Download failed"));
                   return;
                 }
                 await rustDeskWinManager.closeAllSubWindows();
-                await Process.start(Platform.resolvedExecutable, ["--uninstall"], mode: ProcessStartMode.detached);
+                await Process.start(out, ["--update"], mode: ProcessStartMode.detached);
               },
               splashColor: Colors.transparent,
               highlightColor: Colors.transparent,
               child: Tooltip(
-                message: translate("Uninstall"),
+                message: translate("Update"),
                 child: Obx(() => Padding(
                   padding: const EdgeInsets.all(2),
-                  child: Icon(Icons.delete_forever, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
-                )),
-              ),
-              onHover: (value) => hover.value = value,
-            );
-          }
-
-          Widget LNRWebsiteButton(BuildContext context) {
-            final Uri _url = Uri.parse("https://listenandresolve.com");
-            final textColor = Theme.of(context).textTheme.titleLarge?.color;
-            RxBool hover = false.obs;
-            return InkWell(
-              onTap: () async {
-                if (!await launchUrl(_url, mode: LaunchMode.externalApplication)) {
-                  throw Exception("Impossible d'\''ouvrir \$_url");
-                }
-              },
-              splashColor: Colors.transparent,
-              highlightColor: Colors.transparent,
-              child: Tooltip(
-                message: "listenandresolve.com",
-                child: Obx(() => Padding(
-                  padding: const EdgeInsets.all(2),
-                  child: Icon(Icons.language, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
+                  child: Icon(Icons.system_update_alt, size: 14, color: hover.value ? textColor : textColor?.withOpacity(0.4)),
                 )),
               ),
               onHover: (value) => hover.value = value,
