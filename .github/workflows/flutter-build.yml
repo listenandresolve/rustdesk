@@ -357,10 +357,10 @@ jobs:
                   path: bind.installInstallPath());
             }
             return InkWell(
-              onTap: () => doInstall(true),
+              onTap: () => doInstall(false),
               onLongPress: () async {
-                showToast(translate("Installation sans service"));
-                await doInstall(false);
+                showToast(translate("Installation avec service"));
+                await doInstall(true);
               },
               splashColor: Colors.transparent,
               highlightColor: Colors.transparent,
