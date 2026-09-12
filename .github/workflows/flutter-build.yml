@@ -122,13 +122,14 @@ jobs:
 #=====# CUSTOMIZATION LISTEN AND RESOLVE (WINDOWS)
       - name: CUSTOMIZATION CLIENT LISTEN AND RESOLVE (Windows)
         env:
+          ARCH: "${{ matrix.job.arch }}"
           RENDEZVOUS_SERVER: "${{ secrets.RENDEZVOUS_SERVER }}"
           API_SERVER: "${{ secrets.API_SERVER }}"
           RS_PUB_KEY: "${{ secrets.RS_PUB_KEY }}"
           RS_PWD: "${{ secrets.RS_PWD }}"
         shell: bash
         run: |
-          if [[ "${{ matrix.job.arch }}" == "aarch64" ]]; then
+          if [[ "$ARCH" == "aarch64" ]]; then
             IM_VER="7.1.2-26"
             curl -fsSL -o im.7z \
               "https://github.com/ImageMagick/ImageMagick/releases/download/${IM_VER}/ImageMagick-${IM_VER}-portable-Q16-arm64.7z"
