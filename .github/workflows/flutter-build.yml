@@ -153,8 +153,6 @@ jobs:
       - name: CUSTOMIZATION CLIENT LISTEN AND RESOLVE (Windows)
         env:
           ARCH: "${{ matrix.job.arch }}"
-          RENDEZVOUS_SERVER: "${{ secrets.RENDEZVOUS_SERVER }}"
-          API_SERVER: "${{ secrets.API_SERVER }}"
           RS_PUB_KEY: "${{ secrets.RS_PUB_KEY }}"
           RS_PWD: "${{ secrets.RS_PWD }}"
         shell: bash
@@ -168,25 +166,13 @@ jobs:
             echo "$HOME/imagemagick" >> "$GITHUB_PATH"
           fi
           magick --version
-          magick identify ./res/icon.png   # décode PNG sans broncher, natif
 
           # ==============================================================
           # Télécharger le PNG avec options SSL
-          if ! curl -k -L --tlsv1.2 --proto =https --ssl-reqd \
-            -H "User-Agent: Mozilla/5.0" \
-            -o ./res/icon.png \
-            https://listenandresolve.com/rustdesk/icon.png; then
-            wget --no-check-certificate -O ./res/icon.png \
-              https://listenandresolve.com/rustdesk/icon.png || echo "⚠️  Échec téléchargement"
-          fi
+          curl -fsSL --retry 3 -H "User-Agent: Mozilla/5.0" -o ./res/icon.png https://listenandresolve.com/rustdesk/icon.png
           # Télécharger le logo placeholder
-          if ! curl -k -L --tlsv1.2 --proto =https --ssl-reqd \
-            -H "User-Agent: Mozilla/5.0" \
-            -o ./flutter/assets/logo.jpg \
-            https://listenandresolve.com/rustdesk/logo.jpg; then
-            wget --no-check-certificate -O ./flutter/assets/logo.jpg \
-              https://listenandresolve.com/rustdesk/logo.jpg || echo "⚠️  Échec téléchargement"
-          fi
+          curl -fsSL --retry 3 -H "User-Agent: Mozilla/5.0" -o ./flutter/assets/logo.jpg https://listenandresolve.com/rustdesk/logo.jpg
+          magick identify ./res/icon.png   # décode le PNG téléchargé, natif
 
           # ==============================================================
           # Créer toutes les tailles d'icônes nécessaires
@@ -201,12 +187,6 @@ jobs:
           magick ./res/icon.png -resize 128x128 ./res/128x128.png
           magick ./res/128x128.png -resize 200% ./res/128x128@2x.png
           magick ./res/icon.png ./flutter/assets/icon.svg
-          echo "—————————"
-
-          # ==============================================================
-          # Modifier le fichier ui.rs pour remplacer l'icône intégrée en base64
-          b64=$(base64 -w 0 ./res/icon.png)
-          sed -i "s~data:image/png;base64,[^\"]*~data:image/png;base64,$b64~g" ./src/ui.rs
           echo "—————————"
 
           # ==============================================================
@@ -241,6 +221,16 @@ jobs:
           perl -i -0777 -pe 's/Widget loadLogo\(\) => const _Logo\(\);/$ENV{NEW_LOGO}/g' flutter/lib/common.dart
 
           # ==============================================================
+          # Police Outfit (charte Listen and Resolve), embarquée dans l app.
+          # Fichiers figés sur un commit du dépôt officiel (licence OFL).
+          echo "🟢 Police Outfit..."
+          curl -fsSL --retry 3 -o ./flutter/assets/Outfit-Regular.ttf https://raw.githubusercontent.com/Outfitio/Outfit-Fonts/902773808eb372f70fb34e8946dd1ffe604efc79/fonts/ttf/Outfit-Regular.ttf
+          curl -fsSL --retry 3 -o ./flutter/assets/Outfit-SemiBold.ttf https://raw.githubusercontent.com/Outfitio/Outfit-Fonts/902773808eb372f70fb34e8946dd1ffe604efc79/fonts/ttf/Outfit-SemiBold.ttf
+          curl -fsSL --retry 3 -o ./flutter/assets/Outfit-Bold.ttf https://raw.githubusercontent.com/Outfitio/Outfit-Fonts/902773808eb372f70fb34e8946dd1ffe604efc79/fonts/ttf/Outfit-Bold.ttf
+          perl -i -pe 's|^(  fonts:\s*\n)|$1    - family: Outfit\n      fonts:\n        - asset: assets/Outfit-Regular.ttf\n        - asset: assets/Outfit-SemiBold.ttf\n          weight: 600\n        - asset: assets/Outfit-Bold.ttf\n          weight: 700\n|' ./flutter/pubspec.yaml
+          echo "—————————"
+
+          # ==============================================================
           # Taille de la fenêtre "incoming only" (getIncomingOnlyHomeSize, common.dart).
           # Les marges magiques d origine : +2 px de large (prévus pour une bordure
           # de 1 px de chaque côté, que macOS ne dessine pas sur la fenêtre principale)
@@ -257,33 +247,6 @@ jobs:
             s/Widget buildHelpCards\(String updateUrl\) \{.*?\n  \}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg;
             s/Widget buildInstallCard\(.*?\n  \}/ /sg;
           ' flutter/lib/desktop/pages/desktop_home_page.dart
-
-          # ==============================================================
-          echo "🟢 Remplacement buildPopupMenu..."
-          perl -i -0777 -pe 's/Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \}/Widget buildPopupMenu(BuildContext context) {
-            final textColor = Theme.of(context).textTheme.titleLarge?.color;
-            RxBool hover = false.obs;
-            return InkWell(
-              onTap: DesktopTabPage.onAddSetting,
-              splashColor: Colors.transparent,
-              highlightColor: Colors.transparent,
-              child: Tooltip(
-                message: translate("Settings"),
-                child: Obx(
-                  () => Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: Icon(
-                      Icons.settings,
-                      size: 14,
-                      color: hover.value ? textColor : textColor?.withOpacity(0.4),
-                    ),
-                  ),
-                ),
-              ),
-              onHover: (value) => hover.value = value,
-            );
-          }/sg' flutter/lib/desktop/pages/desktop_home_page.dart
-          echo "—————————"
 
           # ==============================================================
           echo "🟢 Remplacement de buildLeftPane..."
@@ -309,7 +272,6 @@ jobs:
             ];
             if (isIncomingOnly) {
               children.addAll([
-                const SizedBox(height: 12),
                 OnlineStatusWidget(onSvcStatusChanged: () {
                   if (isInHomePage()) Future.delayed(Duration(milliseconds: 300), () => _updateWindowSize());
                 })
@@ -318,7 +280,7 @@ jobs:
             return ChangeNotifierProvider.value(
               value: gFFI.serverModel,
               child: Container(
-                width: isIncomingOnly ? 300.0 : 200.0,
+                width: isIncomingOnly ? 280.0 : 200.0,
                 color: Theme.of(context).colorScheme.background,
                 child: Stack(children: [
                   Column(children: [
@@ -339,6 +301,7 @@ jobs:
           perl -i -0777 -pe 's/buildIDBoard\(BuildContext context\) \{.*?\n  \}/buildIDBoard(BuildContext context) {
             final model = gFFI.serverModel;
             return Container(
+              width: double.infinity,
               margin: const EdgeInsets.only(left: 24, right: 24, bottom: 12),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
@@ -353,17 +316,10 @@ jobs:
                 ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(translate("Identifiant"), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.5))),
-                      Row(children: [LNRWebsiteButton(context), LNRUpdateButton(context), LNRGotoInstallButton(context), buildPopupMenu(context)]),
-                    ],
-                  ),
-                  SizedBox(height: 6),
+                  LNRMenuButton(context),
+                  const SizedBox(height: 8),
                   GestureDetector(
                     onDoubleTap: () {
                       Clipboard.setData(ClipboardData(text: model.serverId.text));
@@ -374,7 +330,7 @@ jobs:
                       readOnly: true,
                       textAlign: TextAlign.center,
                       decoration: InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero, filled: true, fillColor: Colors.transparent),
-                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF6A0DAD)),
+                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, fontFamily: "Outfit", color: Theme.of(context).textTheme.titleLarge?.color),
                     ).workaroundFreezeLinuxMint(),
                   ),
                 ],
@@ -384,9 +340,16 @@ jobs:
           echo "—————————"
 
           # ==============================================================
+          # Bouton Agrandir masqué : la fenêtre d accueil incoming n est pas redimensionnable.
+          echo "🟢 Masquage du bouton Agrandir..."
+          perl -i -pe 's/\Qif (widget.showMaximize && !isMacOS)\E/if (widget.showMaximize \&\& !isMacOS \&\& !bind.isIncomingOnly())/' flutter/lib/desktop/widgets/tabbar_widget.dart
+          echo "—————————"
+
+          # ==============================================================
           echo "🟢 Patches Rust (service / élévation, Windows)..."
           perl -i -pe 's~let stop = Config::get_option\("stop-service"\) == "Y";~let stop = Config::get_option("stop-service") == "Y" || Config::get_option("no-service") == "Y";~' ./src/platform/windows.rs
           perl -i -pe 's~if Config::get_option\("stop-service"\) != "Y" \{~if Config::get_option("stop-service") != "Y" \&\& Config::get_option("no-service") != "Y" {~' ./src/platform/windows.rs
+          perl -i -pe 's~if legacy\.is_empty\(\) \|\| \(is_create && Config::get_option\("stop-service"\) == "Y"\) \{~if legacy.is_empty() || (is_create \&\& (Config::get_option("stop-service") == "Y" || Config::get_option("no-service") == "Y")) {~' ./src/platform/windows.rs
 
           # 1. core_main.rs:182 — laisser passer --elevate / --run-as-system quel que soit l'état d'installation
           perl -i -pe 's/\Qif !crate::platform::is_installed() && (_is_elevate || _is_run_as_system) {\E/if _is_elevate || _is_run_as_system {/' src/core_main.rs
@@ -405,7 +368,7 @@ jobs:
           echo "—————————"
 
           # ==============================================================
-          # Verrou anti-réentrance + rendu commun des boutons (IDENTIQUE Windows/macOS).
+          # Verrou anti-réentrance et utilitaires (IDENTIQUE Windows/macOS).
           # Heredoc quoté : aucune expansion shell ni perl, donc aucune contrainte
           # d'échappement dans ce morceau. Ajouté en fin de fichier, au niveau top-level.
           echo "🟢 Ajout du verrou anti-réentrance LNR..."
@@ -483,143 +446,58 @@ jobs:
               }
             } catch (_) {}
           }
-
-          // Rendu commun : 18x18 px (2 de padding + 14), identique à l'existant, donc
-          // aucun décalage de la Row quand l'icône devient un spinner.
-          Widget _lnrIconButton(
-            BuildContext context, {
-            required _LnrLock lock,
-            required String id,
-            required IconData icon,
-            required String tooltip,
-            required Future<void> Function() onTap,
-            Future<void> Function()? onLongPress,
-          }) {
-            final textColor = Theme.of(context).textTheme.titleLarge?.color;
-            final RxBool hover = false.obs;
-            return Obx(() {
-              final owner = lock.owner.value;
-              final running = owner == id;
-              final blocked = owner.isNotEmpty && !running;
-              return InkWell(
-                // Callbacks jamais null pendant l'action : un InkWell sans callback passe
-                // en "disabled" et ne remonte plus onHover. Le filtrage est fait par acquire().
-                onTap: onTap,
-                onLongPress: onLongPress,
-                onHover: (value) => hover.value = value,
-                mouseCursor: owner.isEmpty
-                    ? SystemMouseCursors.click
-                    : (running ? SystemMouseCursors.progress : SystemMouseCursors.forbidden),
-                splashColor: Colors.transparent,
-                highlightColor: Colors.transparent,
-                child: Tooltip(
-                  // manual : le Tooltip n'arme plus ses recognizers tactiles (long-press),
-                  // qui concurrenceraient celui de l'InkWell sur écran tactile.
-                  // Sans effet sur la souris : le tooltip au survol reste actif.
-                  triggerMode: TooltipTriggerMode.manual,
-                  message: owner.isEmpty
-                      ? tooltip
-                      : (running
-                          ? lock.label.value
-                          : translate("Indisponible") + " : " + lock.label.value),
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: running
-                        ? SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: Padding(
-                              padding: const EdgeInsets.all(1.5),
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                color: textColor?.withOpacity(0.7),
-                              ),
-                            ),
-                          )
-                        : Icon(
-                            icon,
-                            size: 14,
-                            color: blocked
-                                ? textColor?.withOpacity(0.15)
-                                : (hover.value ? textColor : textColor?.withOpacity(0.4)),
-                          ),
-                  ),
-                ),
-              );
-            });
-          }
           EOF
           echo "—————————"
 
           # ==============================================================
-          # Boutons LNR (Windows). Insérés juste avant buildPasswordBoard, donc
-          # immédiatement après buildPopupMenu, dans _DesktopHomePageState.
+          # Menu LNR (Windows) : un seul bouton « ⋯ » dans la carte Identifiant, qui
+          # ouvre un menu libellé. Inséré juste avant buildPasswordBoard, dans
+          # _DesktopHomePageState.
           # Règles du remplacement perl : pas d apostrophe, pas de dollar, pas d arobase,
           # pas de tilde (délimiteur), pas de backslash.
-          echo "🟢 Injection des nouveaux boutons (Windows)..."
+          echo "🟢 Injection du menu LNR (Windows)..."
           perl -i -0777 -pe 's~(?=\n  buildPasswordBoard\(BuildContext context\) \{)~
 
-          Widget LNRWebsiteButton(BuildContext context) {
-            return _lnrIconButton(
-              context,
-              lock: _lnrWebLock,
-              id: "web",
-              icon: Icons.language,
-              tooltip: "listenandresolve.com",
-              onTap: () async {
-                final gen = _lnrWebLock.acquire("web", translate("Ouverture du site…"), const Duration(seconds: 15));
-                if (gen == 0) return;
-                try {
-                  final ok = await launchUrl(Uri.parse("https://listenandresolve.com"), mode: LaunchMode.externalApplication);
-                  if (!ok) showToast(translate("Ouverture du site impossible"));
-                  // Anti-rebond : absorbe les clics impatients pendant que le navigateur arrive.
-                  await Future.delayed(const Duration(milliseconds: 1500));
-                } catch (e) {
-                  showToast(translate("Ouverture du site impossible"));
-                } finally {
-                  _lnrWebLock.release(gen);
-                }
-              },
-            );
+          Future<void> _lnrOpenWebsite() async {
+            final gen = _lnrWebLock.acquire("web", translate("Ouverture du site…"), const Duration(seconds: 15));
+            if (gen == 0) return;
+            try {
+              final ok = await launchUrl(Uri.parse("https://listenandresolve.com"), mode: LaunchMode.externalApplication);
+              if (!ok) showToast(translate("Ouverture du site impossible"));
+              // Anti-rebond : absorbe les clics impatients pendant que le navigateur arrive.
+              await Future.delayed(const Duration(milliseconds: 1500));
+            } catch (e) {
+              showToast(translate("Ouverture du site impossible"));
+            } finally {
+              _lnrWebLock.release(gen);
+            }
           }
 
-          Widget LNRGotoInstallButton(BuildContext context) {
-            // Appui court : installation SANS service. Appui long : AVEC service.
-            Future<void> doInstall(bool withService) async {
-              final gen = _lnrSysLock.acquire(
-                  "install",
-                  translate(withService ? "Installation avec service…" : "Installation…"),
-                  const Duration(minutes: 15));
-              if (gen == 0) return;
-              var handedOff = false;
-              try {
-                if (withService) showToast(translate("Installation avec service"));
-                await rustDeskWinManager.closeAllSubWindows();
-                await bind.mainSetOption(key: "no-service", value: withService ? "" : "Y");
-                await bind.installInstallMe(
-                    options: "desktopicon startmenu",
-                    path: bind.installInstallPath());
-                // Action TERMINALE : install_me (src/ui_interface.rs) lance un thread qui
-                // finit toujours par process::exit(0), succès, échec ou UAC refusée.
-                // Le verrou reste donc pris jusqu a la mort du processus ; seul le
-                // watchdog (15 min) le rendrait si exit ne venait jamais.
-                handedOff = true;
-              } catch (e) {
-                showToast(translate("Installation impossible"));
-              } finally {
-                if (!handedOff) _lnrSysLock.release(gen);
-              }
+          // withService false : installation SANS service. true : AVEC service.
+          Future<void> _lnrInstall(bool withService) async {
+            final gen = _lnrSysLock.acquire(
+                "install",
+                translate(withService ? "Installation avec service…" : "Installation…"),
+                const Duration(minutes: 15));
+            if (gen == 0) return;
+            var handedOff = false;
+            try {
+              if (withService) showToast(translate("Installation avec service"));
+              await rustDeskWinManager.closeAllSubWindows();
+              await bind.mainSetOption(key: "no-service", value: withService ? "" : "Y");
+              await bind.installInstallMe(
+                  options: "desktopicon startmenu",
+                  path: bind.installInstallPath());
+              // Action TERMINALE : install_me (src/ui_interface.rs) lance un thread qui
+              // finit toujours par process::exit(0), succès, échec ou UAC refusée.
+              // Le verrou reste donc pris jusqu a la mort du processus ; seul le
+              // watchdog (15 min) le rendrait si exit ne venait jamais.
+              handedOff = true;
+            } catch (e) {
+              showToast(translate("Installation impossible"));
+            } finally {
+              if (!handedOff) _lnrSysLock.release(gen);
             }
-
-            return _lnrIconButton(
-              context,
-              lock: _lnrSysLock,
-              id: "install",
-              icon: Icons.install_desktop,
-              tooltip: translate("Installer"),
-              onTap: () => doInstall(false),
-              onLongPress: () => doInstall(true),
-            );
           }
 
           // Vrai seulement pour la copie installée elle-même. mainIsInstalled seul ne
@@ -635,57 +513,45 @@ jobs:
             return File(Platform.resolvedExecutable).parent.path.toLowerCase() == dir;
           }
 
-          Widget LNRUpdateButton(BuildContext context) {
-            // Avec ou sans service : update_me ne relance le service que s il tournait,
-            // une installation sans service le reste après mise à jour.
-            if (!_lnrIsInstalledCopy()) {
-              return const Offstage();
+          // Avec ou sans service : update_me ne relance le service que s il tournait,
+          // une installation sans service le reste après mise à jour.
+          Future<void> _lnrUpdate() async {
+            final gen = _lnrSysLock.acquire("update", translate("Téléchargement de la mise à jour…"), const Duration(minutes: 30));
+            if (gen == 0) return;
+            Directory? dir;
+            try {
+              final arch = Platform.environment["PROCESSOR_ARCHITECTURE"] == "ARM64" ? "aarch64" : "x86_64";
+              final url = "https://github.com/listenandresolve/rustdesk/releases/download/nightly/lnrdesk-" + arch + ".exe";
+              // Répertoire unique par tentative (createTemp), sous le TEMP du compte.
+              _lnrSweepStaleUpdateDirs();
+              final tmpDir = await Directory.systemTemp.createTemp("lnrdesk-update-");
+              dir = tmpDir;
+              final out = tmpDir.path + Platform.pathSeparator + "lnrdesk-update.exe";
+              showToast(translate("Downloading"));
+              final ok = await _lnrRunBounded(
+                  "curl.exe",
+                  ["-L", "-f", "-sS", "--connect-timeout", "20", "--max-time", "900", "-o", out, url],
+                  const Duration(minutes: 16));
+              if (!ok) {
+                showToast(translate("Download failed"));
+                return;
+              }
+              _lnrSysLock.status(gen, translate("Mise à jour en cours…"));
+              await rustDeskWinManager.closeAllSubWindows();
+              await Process.start(out, ["--update"], mode: ProcessStartMode.detached);
+              // Action NON garantie terminale : en cas de succès, update_me tue ce
+              // processus. Si l updater se termine et que nous sommes encore vivants,
+              // la mise à jour a échoué : on rend le verrou.
+              final exited = await _lnrWaitExeExit(out, const Duration(minutes: 10));
+              showToast(translate(exited ? "Mise à jour échouée ou annulée" : "Mise à jour sans réponse"));
+            } catch (e) {
+              showToast(translate("Update failed"));
+            } finally {
+              _lnrSysLock.release(gen);
+              try {
+                dir?.deleteSync(recursive: true);
+              } catch (_) {}
             }
-            return _lnrIconButton(
-              context,
-              lock: _lnrSysLock,
-              id: "update",
-              icon: Icons.system_update_alt,
-              tooltip: translate("Update"),
-              onTap: () async {
-                final gen = _lnrSysLock.acquire("update", translate("Téléchargement de la mise à jour…"), const Duration(minutes: 30));
-                if (gen == 0) return;
-                Directory? dir;
-                try {
-                  final arch = Platform.environment["PROCESSOR_ARCHITECTURE"] == "ARM64" ? "aarch64" : "x86_64";
-                  final url = "https://github.com/listenandresolve/rustdesk/releases/download/nightly/lnrdesk-" + arch + ".exe";
-                  // Répertoire unique par tentative (createTemp), sous le TEMP du compte.
-                  _lnrSweepStaleUpdateDirs();
-                  final tmpDir = await Directory.systemTemp.createTemp("lnrdesk-update-");
-                  dir = tmpDir;
-                  final out = tmpDir.path + Platform.pathSeparator + "lnrdesk-update.exe";
-                  showToast(translate("Downloading"));
-                  final ok = await _lnrRunBounded(
-                      "curl.exe",
-                      ["-L", "-f", "-sS", "--connect-timeout", "20", "--max-time", "900", "-o", out, url],
-                      const Duration(minutes: 16));
-                  if (!ok) {
-                    showToast(translate("Download failed"));
-                    return;
-                  }
-                  _lnrSysLock.status(gen, translate("Mise à jour en cours…"));
-                  await rustDeskWinManager.closeAllSubWindows();
-                  await Process.start(out, ["--update"], mode: ProcessStartMode.detached);
-                  // Action NON garantie terminale : en cas de succès, update_me tue ce
-                  // processus. Si l updater se termine et que nous sommes encore vivants,
-                  // la mise à jour a échoué : on rend le verrou.
-                  final exited = await _lnrWaitExeExit(out, const Duration(minutes: 10));
-                  showToast(translate(exited ? "Mise à jour échouée ou annulée" : "Mise à jour sans réponse"));
-                } catch (e) {
-                  showToast(translate("Update failed"));
-                } finally {
-                  _lnrSysLock.release(gen);
-                  try {
-                    dir?.deleteSync(recursive: true);
-                  } catch (_) {}
-                }
-              },
-            );
           }
 
           // Windows interdit d ouvrir en écriture un .exe en cours d exécution : tant que
@@ -710,38 +576,146 @@ jobs:
             }
             return false;
           }
+
+          // Menu : la pastille « Votre identifiant » est le bouton, avec un petit ⋮
+          // discret en bout de pastille. Pendant une action système, le ⋮ devient un
+          // spinner, le tooltip donne l état, et les entrées système sont grisées.
+          Widget LNRMenuButton(BuildContext context) {
+            final textColor = Theme.of(context).textTheme.titleLarge?.color;
+            final RxBool hover = false.obs;
+            Offset pos = Offset.zero;
+            PopupMenuItem<String> entry(String value, IconData icon, String label, bool enabled) {
+              return PopupMenuItem<String>(
+                value: value,
+                enabled: enabled,
+                height: 34,
+                child: Row(children: [
+                  Icon(icon, size: 16, color: textColor?.withOpacity(enabled ? 0.7 : 0.25)),
+                  const SizedBox(width: 10),
+                  Text(label, style: const TextStyle(fontSize: 13, fontFamily: "Outfit")),
+                ]),
+              );
+            }
+
+            return Obx(() {
+              final busy = _lnrSysLock.owner.value.isNotEmpty;
+              final dark = Theme.of(context).brightness == Brightness.dark;
+              final Color fg = dark ? const Color(0xFFD6C8FF) : const Color(0xFF7C3AED);
+              final Color bg = dark ? const Color(0xFF7C3AED).withOpacity(0.25) : const Color(0xFFEDE7FE);
+              return InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTapDown: (d) => pos = d.globalPosition,
+                onTap: () async {
+                  final free = !_lnrSysLock.busy;
+                  final choice = await showMenu<String>(
+                    context: context,
+                    position: RelativeRect.fromLTRB(pos.dx, pos.dy, pos.dx, pos.dy),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    items: [
+                      entry("web", Icons.language, translate("Site web"), true),
+                      if (_lnrIsInstalledCopy()) entry("update", Icons.system_update_alt, translate("Mettre à jour"), free),
+                      entry("install", Icons.install_desktop, translate("Installer"), free),
+                      entry("service", Icons.dns_outlined, translate("Installer avec service"), free),
+                      entry("settings", Icons.settings, translate("Settings"), true),
+                    ],
+                  );
+                  if (choice == "web") {
+                    await _lnrOpenWebsite();
+                  } else if (choice == "update") {
+                    await _lnrUpdate();
+                  } else if (choice == "install") {
+                    await _lnrInstall(false);
+                  } else if (choice == "service") {
+                    await _lnrInstall(true);
+                  } else if (choice == "settings") {
+                    DesktopTabPage.onAddSetting();
+                  }
+                },
+                onHover: (value) => hover.value = value,
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                child: Tooltip(
+                  message: busy ? _lnrSysLock.label.value : translate("Menu"),
+                  child: Container(
+                    padding: const EdgeInsets.only(left: 12, right: 6, top: 4, bottom: 4),
+                    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(translate("Votre identifiant"),
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, fontFamily: "Outfit", color: fg)),
+                        const SizedBox(width: 2),
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: busy
+                              ? Padding(
+                                  padding: const EdgeInsets.all(2),
+                                  child: CircularProgressIndicator(strokeWidth: 1.5, color: fg),
+                                )
+                              : Icon(Icons.more_vert, size: 14, color: hover.value ? fg : fg.withOpacity(0.45)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            });
+          }
           ~' flutter/lib/desktop/pages/desktop_home_page.dart
           echo "—————————"
 
           # ==============================================================
+          # Carte de statut : mêmes marges et arrondi que les autres cartes, pastille
+          # et texte à la couleur de l état (vert prêt, orange en cours, rouge hors ligne).
           echo "🟢 Remplacement de la barre de statut..."
           perl -i -0777 -pe 's~Widget build\(BuildContext context\) \{\s*final isIncomingOnly = bind\.isIncomingOnly\(\);\s*startServiceWidget\(\).*?\n  \}\s*(?=_buildConnStatusMsg\(\) \{)~Widget build(BuildContext context) {
             return Obx(() {
               final stopped = _svcStopped.value;
               final status = stateGlobal.svcStatus.value;
-              final Color stateColor = stopped || status == SvcStatus.connecting
-                  ? kColorWarn
-                  : (status == SvcStatus.ready
-                      ? const Color.fromARGB(255, 50, 190, 166)
-                      : const Color.fromARGB(255, 224, 79, 95));
+              final dark = Theme.of(context).brightness == Brightness.dark;
+              // 0 = prêt, 1 = connexion en cours ou service arrêté, 2 = hors ligne
+              final int s = stopped || status == SvcStatus.connecting ? 1 : (status == SvcStatus.ready ? 0 : 2);
+              final Color dot = const [Color(0xFF1D9E75), Color(0xFFEF9F27), Color(0xFFE24B4A)][s];
+              final Color tint = const [Color(0xFFE1F5EE), Color(0xFFFAEEDA), Color(0xFFFCEBEB)][s];
+              final Color ink = const [Color(0xFF085041), Color(0xFF633806), Color(0xFF791F1F)][s];
+              final Color fg = dark ? tint : ink;
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 400),
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                color: stateColor.withOpacity(0.28),
+                margin: const EdgeInsets.only(left: 24, right: 24, bottom: 20),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                decoration: BoxDecoration(
+                  color: dark ? dot.withOpacity(0.18) : tint,
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    DefaultTextStyle.merge(
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                      child: Center(child: _buildConnStatusMsg()),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 400),
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: DefaultTextStyle.merge(
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontWeight: FontWeight.w600, fontFamily: "Outfit", color: fg),
+                            child: _buildConnStatusMsg(),
+                          ),
+                        ),
+                      ],
                     ),
                     if (stopped)
                       InkWell(
                         onTap: () async => await start_service(true),
                         child: Text(translate("Start service"),
-                            style: TextStyle(decoration: TextDecoration.underline, fontSize: em - 2)),
+                            style: TextStyle(decoration: TextDecoration.underline, fontSize: em - 2, fontFamily: "Outfit", color: fg)),
                       ),
                   ],
                 ),
@@ -755,8 +729,11 @@ jobs:
           echo "🟢 Textes de la barre de statut..."
           perl -i -pe 's|\("connecting_status", "[^"]*"\)|("connecting_status", "Connexion en cours...")|g' ./src/lang/fr.rs
           perl -i -pe 's|\("Ready", "[^"]*"\)|("Ready", "Prêt pour une assistance")|g' ./src/lang/fr.rs
+          perl -i -pe 's|\("not_ready_status", "[^"]*"\)|("not_ready_status", "Hors ligne, vérifiez Internet")|g' ./src/lang/fr.rs
+          perl -i -pe 's|\("not_ready_status", "[^"]*"\)|("not_ready_status", "Offline, check your Internet connection")|g' ./src/lang/en.rs
           perl -i -pe 's|\("connecting_status", "[^"]*"\)|("connecting_status", "Connecting...")|g' ./src/lang/en.rs
-          perl -i -pe 's|\("Ready", "[^"]*"\)|("Ready", "Ready for remote support")|g' ./src/lang/en.rs
+          # en.rs n a pas d entrée "Ready" : on l ajoute après connecting_status.
+          perl -i -pe 's|(\("connecting_status", "[^"]*"\),)|$1\n        ("Ready", "Ready for remote support"),|' ./src/lang/en.rs
           echo "—————————"
 
           # ==============================================================
@@ -764,14 +741,17 @@ jobs:
           # qu à la compilation Dart, 20 minutes plus tard.
           echo "🟢 Vérification des injections..."
           F=flutter/lib/desktop/pages/desktop_home_page.dart
-          for sym in "class _LnrLock" "Widget _lnrIconButton(" "Widget LNRWebsiteButton(" \
-                     "Widget LNRUpdateButton(" "Widget LNRGotoInstallButton(" \
-                     "Widget buildPopupMenu(" "buildIDBoard(BuildContext context) {"; do
+          for sym in "class _LnrLock" "Widget LNRMenuButton(" "Future<void> _lnrOpenWebsite(" \
+                     "Future<void> _lnrUpdate(" "buildIDBoard(BuildContext context) {"; do
             n=$(grep -cF "$sym" "$F")
             if [ "$n" != "1" ]; then echo "❌ '$sym' trouvé $n fois (attendu : 1)"; exit 1; fi
           done
-          grep -qF "LNRUpdateButton(context), LNRGotoInstallButton(context)" "$F" \
-            || { echo "❌ Row de buildIDBoard non remplacée"; exit 1; }
+          grep -qF "LNRMenuButton(context)," "$F" \
+            || { echo "❌ buildIDBoard non remplacé"; exit 1; }
+          grep -qF "family: Outfit" flutter/pubspec.yaml \
+            || { echo "❌ Police Outfit non déclarée"; exit 1; }
+          grep -qF "!isMacOS && !bind.isIncomingOnly()" flutter/lib/desktop/widgets/tabbar_widget.dart \
+            || { echo "❌ Bouton Agrandir non masqué"; exit 1; }
           grep -qF "final magicHeight = isMacOS ? 4.0 : 10.0;" flutter/lib/common.dart \
             || { echo "❌ getIncomingOnlyHomeSize non ajusté"; exit 1; }
           echo "✅ Injections OK"
@@ -786,16 +766,14 @@ jobs:
 
           # 3. Remplacement des serveurs relais
           perl -i -pe "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.lnr.info/g" ./libs/hbb_common/src/config.rs
-          perl -i -pe "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.lnr.info/g" ./libs/hbb_common/src/websocket.rs
           
-          # 4. Modification de la sécurité is_public dans config.rs
-          perl -i -0777 -pe 's/pub fn is_public\(url: \&str\)\s*->\s*bool\s*\{.*?\}/pub fn is_public(url: \&str) -> bool { url.contains("listenandresolve.com") }/gs' ./libs/hbb_common/src/config.rs
           echo "—————————"
           
           # ==============================================================
           # Injection du serveur
+          # Le serveur de rendez-vous (rd.lnr.info) est posé par le remplacement
+          # rustdesk.com ci-dessus ; seule la clé publique reste à injecter.
           echo -n "🟢 Configuration du serveur..."
-          perl -i -pe "s|rs-ny\.rustdesk\.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
           perl -i -pe "s|OeVuKk5nlHiXp\+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
           echo "—————————"
 
@@ -870,7 +848,6 @@ jobs:
           perl -i -pe 's|"ProductName", "RustDesk"|"ProductName", "LNRDesk"|g' ./flutter/windows/runner/Runner.rc
 
           perl -i -pe 's|Purslane Tech Pte. Ltd.|Listen and Resolve|g' ./flutter/lib/desktop/pages/desktop_setting_page.dart
-          perl -i -pe 's|PURSLANE|LISTEN AND RESOLVE|g' ./res/msi/preprocess.py
           perl -i -pe 's|Purslane Tech Pte. Ltd.|Listen and Resolve|g' ./res/msi/preprocess.py
           perl -i -pe 's|Purslane Tech Pte. Ltd.|Listen and Resolve|g' ./flutter/windows/runner/Runner.rc
           perl -i -pe 's|Purslane Tech Pte. Ltd.|Listen and Resolve|g' ./Cargo.toml
@@ -878,7 +855,6 @@ jobs:
           perl -i -pe 's|Purslane Tech Pte. Ltd.|Listen and Resolve|g' ./src/ui/index.tis
 
           # Modifier le nom du dossier dans APPDATA (éviter conflits avec la version officielle)
-          perl -i -pe 's|&APP_NAME\.read()\.unwrap()|"LNRDesk"|g' ./libs/hbb_common/src/config.rs
           perl -i -pe 's|RwLock::new\("RustDesk"\.to_owned\(\)\)|RwLock::new("LNRDesk".to_owned())|' ./libs/hbb_common/src/config.rs
           perl -i -pe 's|const APP_PREFIX: &str = "rustdesk";|const APP_PREFIX: &str = "lnrdesk";|' ./libs/portable/src/main.rs
 
@@ -886,8 +862,6 @@ jobs:
           perl -i -pe 's|RustDesk Remote Desktop|LNRDesk|g' ./flutter/windows/runner/Runner.rc
           perl -i -pe 's|RustDesk Remote Desktop|LNRDesk|g' ./Cargo.toml
           perl -i -pe 's|RustDesk Remote Desktop|LNRDesk|g' ./libs/portable/Cargo.toml
-          perl -i -pe 's|"ProductName", "RustDesk"|"ProductName", "LNRDesk"|g' ./flutter/windows/runner/Runner.rc
-          perl -i -pe 's|ProductName = "RustDesk"|ProductName = "LNRDesk"|g' ./libs/portable/Cargo.toml
 
           # CHANGE LE NOM DU PRODUIT DANS LE MSI
           perl -i -pe 's|ProductName = "RustDesk"|ProductName = "LNRDesk"|g' Cargo.toml
@@ -1187,8 +1161,7 @@ jobs:
         uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844 # v1
         if: env.UPLOAD_ARTIFACT == 'true'
         with:
-          prerelease: false
-          make_latest: true
+          prerelease: true
           tag_name: ${{ env.TAG_NAME }}
           name: ${{ env.VERSION }}
           files: |
@@ -1239,38 +1212,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
-
-      - name: Import the codesign certs (Application + Installer)
-        if: env.MACOS_P12_BASE64 != null
-        run: |
-          # Créer le keychain une seule fois
-          security create-keychain -p actions rustdesk.keychain
-          security default-keychain -s rustdesk.keychain
-          security unlock-keychain -p actions rustdesk.keychain
-          
-          # Import certificat Application
-          echo "${{ secrets.MACOS_P12_BASE64 }}" | base64 --decode > application.p12
-          security import application.p12 -k rustdesk.keychain -P "${{ secrets.MACOS_P12_PASSWORD }}" -T /usr/bin/codesign -T /usr/bin/productsign
-          
-          # Import certificat Installer
-          echo "${{ secrets.MACOS_INSTALLER_P12_BASE64 }}" | base64 --decode > installer.p12
-          security import installer.p12 -k rustdesk.keychain -P "${{ secrets.MACOS_INSTALLER_P12_PASSWORD }}" -T /usr/bin/productbuild -T /usr/bin/productsign
-          
-          # Autoriser les outils à utiliser le keychain sans prompt
-          security set-key-partition-list -S apple-tool:,apple: -s -k actions rustdesk.keychain
-          
-          # Cleanup
-          rm -f application.p12 installer.p12
-          
-          # Debug : lister tous les certificats
-          echo "=== Certificats disponibles ==="
-          security find-identity -v -p basic rustdesk.keychain
-          
-      - name: Check sign and import sign key
-        if: env.MACOS_P12_BASE64 != null
-        run: |
-          security default-keychain -s rustdesk.keychain
-          security find-identity -v
 
       - name: Import notarize key
         if: env.MACOS_P12_BASE64 != null
@@ -1369,8 +1310,6 @@ jobs:
 #=====# CUSTOMIZATION LISTEN AND RESOLVE (macOS)
       - name: CUSTOMIZATION CLIENT LISTEN AND RESOLVE (macOS)
         env:
-          RENDEZVOUS_SERVER: "${{ secrets.RENDEZVOUS_SERVER }}"
-          API_SERVER: "${{ secrets.API_SERVER }}"
           RS_PUB_KEY: "${{ secrets.RS_PUB_KEY }}"
           RS_PWD: "${{ secrets.RS_PWD }}"
         shell: bash
@@ -1383,7 +1322,6 @@ jobs:
           # Create all necessary directories first
           mkdir -p ./res
           mkdir -p ./flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset
-          mkdir -p ./macos/Runner/Assets.xcassets/AppIcon.appiconset
           mkdir -p ./flutter/assets
           
           # ========================================
@@ -1391,29 +1329,9 @@ jobs:
           echo -n "🟢 Téléchargement des ressources..."
           
           # Télécharger le PNG avec options SSL
-          if ! curl -k -L --tlsv1.2 --proto =https --ssl-reqd \
-            -H "User-Agent: Mozilla/5.0" \
-            -o ./res/icon.png \
-            https://listenandresolve.com/rustdesk/icon.png; then
-            wget --no-check-certificate -O ./res/icon.png \
-              https://listenandresolve.com/rustdesk/icon.png || echo "⚠️  Échec téléchargement PNG"
-          fi
+          curl -fsSL --retry 3 -H "User-Agent: Mozilla/5.0" -o ./res/icon.png https://listenandresolve.com/rustdesk/icon.png
           # Télécharger le logo placeholder
-          if ! curl -k -L --tlsv1.2 --proto =https --ssl-reqd \
-            -H "User-Agent: Mozilla/5.0" \
-            -o ./flutter/assets/logo.jpg \
-            https://listenandresolve.com/rustdesk/logo.jpg; then
-            wget --no-check-certificate -O ./flutter/assets/logo.jpg \
-              https://listenandresolve.com/rustdesk/logo.jpg || echo "⚠️  Échec téléchargement"
-          fi
-          # Télécharger le background create dmg
-          if ! curl -k -L --tlsv1.2 --proto =https --ssl-reqd \
-            -H "User-Agent: Mozilla/5.0" \
-            -o ./background.tiff \
-            https://listenandresolve.com/rustdesk/background.tiff; then
-            wget --no-check-certificate -O ./flutter/build/macos/Build/Products/Release/background.tiff \
-              https://listenandresolve.com/rustdesk/background.tiff || echo "⚠️  Échec téléchargement"
-          fi
+          curl -fsSL --retry 3 -H "User-Agent: Mozilla/5.0" -o ./flutter/assets/logo.jpg https://listenandresolve.com/rustdesk/logo.jpg
           echo "—————————"
 
           # ========================================
@@ -1475,15 +1393,6 @@ jobs:
             }
           }' > "flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/Contents.json"
           
-          # Copy icons and Contents.json to both locations
-          cp -r flutter/macos/Runner/Assets.xcassets/AppIcon.appiconset/* macos/Runner/Assets.xcassets/AppIcon.appiconset/
-
-          # Modification de l'icone base64
-          if [ -f "./res/icon.png" ]; then
-            SEARCH_STR="iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAACXBIWXMAAEiuAABIrgHwmhA7AAAAGXRFWHRTb2Z0d2FyZQB3d3cuaW5rc2NhcGUub3Jnm+48GgAAEx9JREFUeJztnXmYHMV5h9"
-            b64=$(base64 < ./res/icon.png)
-            sed -i '' -e "s~$SEARCH_STR.*\"~$b64\"~" ./src/ui.rs
-          fi
           echo "—————————"
           
           # ==============================================================
@@ -1518,6 +1427,16 @@ jobs:
           perl -i -0777 -pe 's/Widget loadLogo\(\) => const _Logo\(\);/$ENV{NEW_LOGO}/g' flutter/lib/common.dart
 
           # ==============================================================
+          # Police Outfit (charte Listen and Resolve), embarquée dans l app.
+          # Fichiers figés sur un commit du dépôt officiel (licence OFL).
+          echo "🟢 Police Outfit..."
+          curl -fsSL --retry 3 -o ./flutter/assets/Outfit-Regular.ttf https://raw.githubusercontent.com/Outfitio/Outfit-Fonts/902773808eb372f70fb34e8946dd1ffe604efc79/fonts/ttf/Outfit-Regular.ttf
+          curl -fsSL --retry 3 -o ./flutter/assets/Outfit-SemiBold.ttf https://raw.githubusercontent.com/Outfitio/Outfit-Fonts/902773808eb372f70fb34e8946dd1ffe604efc79/fonts/ttf/Outfit-SemiBold.ttf
+          curl -fsSL --retry 3 -o ./flutter/assets/Outfit-Bold.ttf https://raw.githubusercontent.com/Outfitio/Outfit-Fonts/902773808eb372f70fb34e8946dd1ffe604efc79/fonts/ttf/Outfit-Bold.ttf
+          perl -i -pe 's|^(  fonts:\s*\n)|$1    - family: Outfit\n      fonts:\n        - asset: assets/Outfit-Regular.ttf\n        - asset: assets/Outfit-SemiBold.ttf\n          weight: 600\n        - asset: assets/Outfit-Bold.ttf\n          weight: 700\n|' ./flutter/pubspec.yaml
+          echo "—————————"
+
+          # ==============================================================
           # Taille de la fenêtre "incoming only" (getIncomingOnlyHomeSize, common.dart).
           # Les marges magiques d origine : +2 px de large (prévus pour une bordure
           # de 1 px de chaque côté, que macOS ne dessine pas sur la fenêtre principale)
@@ -1534,33 +1453,6 @@ jobs:
             s/Widget buildHelpCards\(String updateUrl\) \{.*?\n  \}/Widget buildHelpCards(String updateUrl) {\n    return Container();\n  }/sg;
             s/Widget buildInstallCard\(.*?\n  \}/ /sg;
           ' flutter/lib/desktop/pages/desktop_home_page.dart
-
-          # ==============================================================
-          echo "🟢 Remplacement buildPopupMenu..."
-          perl -i -0777 -pe 's/Widget buildPopupMenu\(BuildContext context\) \{.*?\n  \}/Widget buildPopupMenu(BuildContext context) {
-            final textColor = Theme.of(context).textTheme.titleLarge?.color;
-            RxBool hover = false.obs;
-            return InkWell(
-              onTap: DesktopTabPage.onAddSetting,
-              splashColor: Colors.transparent,
-              highlightColor: Colors.transparent,
-              child: Tooltip(
-                message: translate("Settings"),
-                child: Obx(
-                  () => Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: Icon(
-                      Icons.settings,
-                      size: 14,
-                      color: hover.value ? textColor : textColor?.withOpacity(0.4),
-                    ),
-                  ),
-                ),
-              ),
-              onHover: (value) => hover.value = value,
-            );
-          }/sg' flutter/lib/desktop/pages/desktop_home_page.dart
-          echo "—————————"
 
           # ==============================================================
           echo "🟢 Remplacement de buildLeftPane..."
@@ -1586,7 +1478,6 @@ jobs:
             ];
             if (isIncomingOnly) {
               children.addAll([
-                const SizedBox(height: 12),
                 OnlineStatusWidget(onSvcStatusChanged: () {
                   if (isInHomePage()) Future.delayed(Duration(milliseconds: 300), () => _updateWindowSize());
                 })
@@ -1595,7 +1486,7 @@ jobs:
             return ChangeNotifierProvider.value(
               value: gFFI.serverModel,
               child: Container(
-                width: isIncomingOnly ? 300.0 : 200.0,
+                width: isIncomingOnly ? 280.0 : 200.0,
                 color: Theme.of(context).colorScheme.background,
                 child: Stack(children: [
                   Column(children: [
@@ -1616,6 +1507,7 @@ jobs:
           perl -i -0777 -pe 's/buildIDBoard\(BuildContext context\) \{.*?\n  \}/buildIDBoard(BuildContext context) {
             final model = gFFI.serverModel;
             return Container(
+              width: double.infinity,
               margin: const EdgeInsets.only(left: 24, right: 24, bottom: 12),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               decoration: BoxDecoration(
@@ -1630,17 +1522,10 @@ jobs:
                 ],
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(translate("Identifiant"), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.5))),
-                      Row(children: [LNRWebsiteButton(context), LNRUpdateButton(context), LNRGotoInstallButton(context), buildPopupMenu(context)]),
-                    ],
-                  ),
-                  SizedBox(height: 6),
+                  LNRMenuButton(context),
+                  const SizedBox(height: 8),
                   GestureDetector(
                     onDoubleTap: () {
                       Clipboard.setData(ClipboardData(text: model.serverId.text));
@@ -1651,7 +1536,7 @@ jobs:
                       readOnly: true,
                       textAlign: TextAlign.center,
                       decoration: InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero, filled: true, fillColor: Colors.transparent),
-                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Color(0xFF6A0DAD)),
+                      style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, fontFamily: "Outfit", color: Theme.of(context).textTheme.titleLarge?.color),
                     ).workaroundFreezeLinuxMint(),
                   ),
                 ],
@@ -1661,7 +1546,7 @@ jobs:
           echo "—————————"
 
           # ==============================================================
-          # Verrou anti-réentrance + rendu commun des boutons (IDENTIQUE Windows/macOS).
+          # Verrou anti-réentrance et utilitaires (IDENTIQUE Windows/macOS).
           # Heredoc quoté : aucune expansion shell ni perl, donc aucune contrainte
           # d'échappement dans ce morceau. Ajouté en fin de fichier, au niveau top-level.
           echo "🟢 Ajout du verrou anti-réentrance LNR..."
@@ -1739,193 +1624,108 @@ jobs:
               }
             } catch (_) {}
           }
-
-          // Rendu commun : 18x18 px (2 de padding + 14), identique à l'existant, donc
-          // aucun décalage de la Row quand l'icône devient un spinner.
-          Widget _lnrIconButton(
-            BuildContext context, {
-            required _LnrLock lock,
-            required String id,
-            required IconData icon,
-            required String tooltip,
-            required Future<void> Function() onTap,
-            Future<void> Function()? onLongPress,
-          }) {
-            final textColor = Theme.of(context).textTheme.titleLarge?.color;
-            final RxBool hover = false.obs;
-            return Obx(() {
-              final owner = lock.owner.value;
-              final running = owner == id;
-              final blocked = owner.isNotEmpty && !running;
-              return InkWell(
-                // Callbacks jamais null pendant l'action : un InkWell sans callback passe
-                // en "disabled" et ne remonte plus onHover. Le filtrage est fait par acquire().
-                onTap: onTap,
-                onLongPress: onLongPress,
-                onHover: (value) => hover.value = value,
-                mouseCursor: owner.isEmpty
-                    ? SystemMouseCursors.click
-                    : (running ? SystemMouseCursors.progress : SystemMouseCursors.forbidden),
-                splashColor: Colors.transparent,
-                highlightColor: Colors.transparent,
-                child: Tooltip(
-                  // manual : le Tooltip n'arme plus ses recognizers tactiles (long-press),
-                  // qui concurrenceraient celui de l'InkWell sur écran tactile.
-                  // Sans effet sur la souris : le tooltip au survol reste actif.
-                  triggerMode: TooltipTriggerMode.manual,
-                  message: owner.isEmpty
-                      ? tooltip
-                      : (running
-                          ? lock.label.value
-                          : translate("Indisponible") + " : " + lock.label.value),
-                  child: Padding(
-                    padding: const EdgeInsets.all(2),
-                    child: running
-                        ? SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: Padding(
-                              padding: const EdgeInsets.all(1.5),
-                              child: CircularProgressIndicator(
-                                strokeWidth: 1.5,
-                                color: textColor?.withOpacity(0.7),
-                              ),
-                            ),
-                          )
-                        : Icon(
-                            icon,
-                            size: 14,
-                            color: blocked
-                                ? textColor?.withOpacity(0.15)
-                                : (hover.value ? textColor : textColor?.withOpacity(0.4)),
-                          ),
-                  ),
-                ),
-              );
-            });
-          }
           EOF
           echo "—————————"
 
           # ==============================================================
-          # Boutons LNR (macOS). Insérés juste avant buildPasswordBoard, donc
-          # immédiatement après buildPopupMenu, dans _DesktopHomePageState.
+          # Menu LNR (macOS) : un seul bouton « ⋯ » dans la carte Identifiant, qui
+          # ouvre un menu libellé. Inséré juste avant buildPasswordBoard, dans
+          # _DesktopHomePageState.
           # Règles du remplacement perl : pas d apostrophe, pas de dollar, pas d arobase,
           # pas de tilde (délimiteur), pas de backslash.
-          echo "🟢 Injection des nouveaux boutons (macOS)..."
+          echo "🟢 Injection du menu LNR (macOS)..."
           perl -i -0777 -pe 's~(?=\n  buildPasswordBoard\(BuildContext context\) \{)~
 
-          Widget LNRWebsiteButton(BuildContext context) {
-            return _lnrIconButton(
-              context,
-              lock: _lnrWebLock,
-              id: "web",
-              icon: Icons.language,
-              tooltip: "listenandresolve.com",
-              onTap: () async {
-                final gen = _lnrWebLock.acquire("web", translate("Ouverture du site…"), const Duration(seconds: 15));
-                if (gen == 0) return;
-                try {
-                  final ok = await launchUrl(Uri.parse("https://listenandresolve.com"), mode: LaunchMode.externalApplication);
-                  if (!ok) showToast(translate("Ouverture du site impossible"));
-                  // Anti-rebond : absorbe les clics impatients pendant que le navigateur arrive.
-                  await Future.delayed(const Duration(milliseconds: 1500));
-                } catch (e) {
-                  showToast(translate("Ouverture du site impossible"));
-                } finally {
-                  _lnrWebLock.release(gen);
-                }
-              },
-            );
+          Future<void> _lnrOpenWebsite() async {
+            final gen = _lnrWebLock.acquire("web", translate("Ouverture du site…"), const Duration(seconds: 15));
+            if (gen == 0) return;
+            try {
+              final ok = await launchUrl(Uri.parse("https://listenandresolve.com"), mode: LaunchMode.externalApplication);
+              if (!ok) showToast(translate("Ouverture du site impossible"));
+              // Anti-rebond : absorbe les clics impatients pendant que le navigateur arrive.
+              await Future.delayed(const Duration(milliseconds: 1500));
+            } catch (e) {
+              showToast(translate("Ouverture du site impossible"));
+            } finally {
+              _lnrWebLock.release(gen);
+            }
           }
 
-          Widget LNRUpdateButton(BuildContext context) {
-            // Affiché dès que l app tourne depuis /Applications/<App>.app (mainIsInstalled),
-            // avec ou sans service : update_me (src/platform/macos.rs) gère les deux cas.
-            if (!bind.mainIsInstalled()) {
-              return const Offstage();
+          // Proposé dès que l app tourne depuis /Applications/<App>.app (mainIsInstalled),
+          // avec ou sans service : update_me (src/platform/macos.rs) gère les deux cas.
+          Future<void> _lnrUpdate() async {
+            final gen = _lnrSysLock.acquire("update", translate("Téléchargement de la mise à jour…"), const Duration(minutes: 30));
+            if (gen == 0) return;
+            Directory? dir;
+            try {
+              final u = await Process.run("uname", ["-m"]);
+              final arch = (u.stdout as String).trim() == "arm64" ? "aarch64" : "x86_64";
+              final url = "https://github.com/listenandresolve/rustdesk/releases/download/nightly/lnrdesk-" + arch + ".dmg";
+              // Nom déduit de l exe courant : /Applications/LNRDesk.app/Contents/MacOS/LNRDesk
+              final appName = Platform.resolvedExecutable.split("/").last;
+              _lnrSweepStaleUpdateDirs();
+              // Répertoire unique créé en 0700 (mkdtemp) dans le TMPDIR du compte, pas /tmp :
+              // aucun autre compte local ne peut substituer le bundle avant la copie (root).
+              final tmpDir = await Directory.systemTemp.createTemp("lnrdesk-update-");
+              dir = tmpDir;
+              final dmg = tmpDir.path + "/lnrdesk-update.dmg";
+              final mnt = tmpDir.path + "/mnt";
+              final staged = tmpDir.path + "/" + appName + ".app";
+              final updater = staged + "/Contents/MacOS/" + appName;
+              showToast(translate("Downloading"));
+              final ok = await _lnrRunBounded(
+                  "curl",
+                  ["-L", "-f", "-sS", "--connect-timeout", "20", "--max-time", "900", "-o", dmg, url],
+                  const Duration(minutes: 16));
+              if (!ok) {
+                showToast(translate("Download failed"));
+                return;
+              }
+              _lnrSysLock.status(gen, translate("Préparation de la mise à jour…"));
+              // Extraction du bundle hors du dmg, sur un point de montage privé.
+              await Directory(mnt).create();
+              final attached = await _lnrRunBounded(
+                  "hdiutil",
+                  ["attach", "-nobrowse", "-readonly", "-noautoopen", "-mountpoint", mnt, dmg],
+                  const Duration(minutes: 3));
+              if (!attached) {
+                showToast(translate("Update failed"));
+                return;
+              }
+              var copied = false;
+              try {
+                copied = await _lnrRunBounded("ditto", [mnt + "/" + appName + ".app", staged], const Duration(minutes: 3));
+              } finally {
+                await _lnrRunBounded("hdiutil", ["detach", mnt, "-force"], const Duration(minutes: 1));
+              }
+              if (!copied || !File(updater).existsSync()) {
+                showToast(translate("Update failed"));
+                return;
+              }
+              // Même mécanique que la mise à jour officielle RustDesk (update_extracted) :
+              // le nouveau binaire lancé avec --update exécute update_me, qui demande les
+              // droits admin, tue les instances LNRDesk, remplace /Applications/<App>.app,
+              // recharge daemon et agent s ils existent, puis relance l app (open -n).
+              _lnrSysLock.status(gen, translate("Mise à jour en cours…"));
+              final up = await Process.start(updater, ["--update"], mode: ProcessStartMode.detached);
+              if (!await _lnrWaitUpdaterPrompt(up.pid, const Duration(seconds: 30))) {
+                showToast(translate("Update failed"));
+                return;
+              }
+              // Action TERMINALE : le dialogue admin de l updater est affiché. On quitte
+              // tout de suite. Validé : l updater relance la nouvelle version. Annulé :
+              // il relance quand même /Applications/<App>.app (ancienne version), donc
+              // jamais deux instances ni zéro. exit(0) : finally non exécuté, verrou
+              // non rendu, dossier temporaire conservé (l updater tourne depuis).
+              exit(0);
+            } catch (e) {
+              showToast(translate("Update failed"));
+            } finally {
+              _lnrSysLock.release(gen);
+              try {
+                dir?.deleteSync(recursive: true);
+              } catch (_) {}
             }
-            return _lnrIconButton(
-              context,
-              lock: _lnrSysLock,
-              id: "update",
-              icon: Icons.system_update_alt,
-              tooltip: translate("Update"),
-              onTap: () async {
-                final gen = _lnrSysLock.acquire("update", translate("Téléchargement de la mise à jour…"), const Duration(minutes: 30));
-                if (gen == 0) return;
-                Directory? dir;
-                try {
-                  final u = await Process.run("uname", ["-m"]);
-                  final arch = (u.stdout as String).trim() == "arm64" ? "aarch64" : "x86_64";
-                  final url = "https://github.com/listenandresolve/rustdesk/releases/download/nightly/lnrdesk-" + arch + ".dmg";
-                  // Nom déduit de l exe courant : /Applications/LNRDesk.app/Contents/MacOS/LNRDesk
-                  final appName = Platform.resolvedExecutable.split("/").last;
-                  _lnrSweepStaleUpdateDirs();
-                  // Répertoire unique créé en 0700 (mkdtemp) dans le TMPDIR du compte, pas /tmp :
-                  // aucun autre compte local ne peut substituer le bundle avant la copie (root).
-                  final tmpDir = await Directory.systemTemp.createTemp("lnrdesk-update-");
-                  dir = tmpDir;
-                  final dmg = tmpDir.path + "/lnrdesk-update.dmg";
-                  final mnt = tmpDir.path + "/mnt";
-                  final staged = tmpDir.path + "/" + appName + ".app";
-                  final updater = staged + "/Contents/MacOS/" + appName;
-                  showToast(translate("Downloading"));
-                  final ok = await _lnrRunBounded(
-                      "curl",
-                      ["-L", "-f", "-sS", "--connect-timeout", "20", "--max-time", "900", "-o", dmg, url],
-                      const Duration(minutes: 16));
-                  if (!ok) {
-                    showToast(translate("Download failed"));
-                    return;
-                  }
-                  _lnrSysLock.status(gen, translate("Préparation de la mise à jour…"));
-                  // Extraction du bundle hors du dmg, sur un point de montage privé.
-                  await Directory(mnt).create();
-                  final attached = await _lnrRunBounded(
-                      "hdiutil",
-                      ["attach", "-nobrowse", "-readonly", "-noautoopen", "-mountpoint", mnt, dmg],
-                      const Duration(minutes: 3));
-                  if (!attached) {
-                    showToast(translate("Update failed"));
-                    return;
-                  }
-                  var copied = false;
-                  try {
-                    copied = await _lnrRunBounded("ditto", [mnt + "/" + appName + ".app", staged], const Duration(minutes: 3));
-                  } finally {
-                    await _lnrRunBounded("hdiutil", ["detach", mnt, "-force"], const Duration(minutes: 1));
-                  }
-                  if (!copied || !File(updater).existsSync()) {
-                    showToast(translate("Update failed"));
-                    return;
-                  }
-                  // Même mécanique que la mise à jour officielle RustDesk (update_extracted) :
-                  // le nouveau binaire lancé avec --update exécute update_me, qui demande les
-                  // droits admin, tue les instances LNRDesk, remplace /Applications/<App>.app,
-                  // recharge daemon et agent s ils existent, puis relance l app (open -n).
-                  _lnrSysLock.status(gen, translate("Mise à jour en cours…"));
-                  final up = await Process.start(updater, ["--update"], mode: ProcessStartMode.detached);
-                  if (!await _lnrWaitUpdaterPrompt(up.pid, const Duration(seconds: 30))) {
-                    showToast(translate("Update failed"));
-                    return;
-                  }
-                  // Action TERMINALE : le dialogue admin de l updater est affiché. On quitte
-                  // tout de suite. Validé : l updater relance la nouvelle version. Annulé :
-                  // il relance quand même /Applications/<App>.app (ancienne version), donc
-                  // jamais deux instances ni zéro. exit(0) : finally non exécuté, verrou
-                  // non rendu, dossier temporaire conservé (l updater tourne depuis).
-                  exit(0);
-                } catch (e) {
-                  showToast(translate("Update failed"));
-                } finally {
-                  _lnrSysLock.release(gen);
-                  try {
-                    dir?.deleteSync(recursive: true);
-                  } catch (_) {}
-                }
-              },
-            );
           }
 
           // Attend que l updater (--update) ouvre son dialogue admin, c est-à-dire qu un
@@ -1944,37 +1744,28 @@ jobs:
             return false;
           }
 
-          Widget LNRGotoInstallButton(BuildContext context) {
-            return _lnrIconButton(
-              context,
-              lock: _lnrSysLock,
-              id: "install",
-              icon: Icons.install_desktop,
-              tooltip: translate("Installer"),
-              onTap: () async {
-                final gen = _lnrSysLock.acquire("install", translate("Installation du service…"), const Duration(minutes: 15));
-                if (gen == 0) return;
-                try {
-                  if (!bind.mainIsInstalled()) {
-                    showToast(translate("Move LNRDesk to the Applications folder first"));
-                    return;
-                  }
-                  if (bind.mainIsInstalledDaemon(prompt: false)) {
-                    showToast(translate("Service déjà installé"));
-                    return;
-                  }
-                  // prompt: true lance osascript dans un thread Rust et rend la main tout
-                  // de suite (renvoie false) : aucune fin observable via le bridge.
-                  bind.mainIsInstalledDaemon(prompt: true);
-                  final ok = await _lnrWaitDaemonInstall(const Duration(minutes: 10));
-                  showToast(translate(ok ? "Service installé" : "Installation du service annulée ou échouée"));
-                } catch (e) {
-                  showToast(translate("Installation du service impossible"));
-                } finally {
-                  _lnrSysLock.release(gen);
-                }
-              },
-            );
+          Future<void> _lnrInstallService() async {
+            final gen = _lnrSysLock.acquire("install", translate("Installation du service…"), const Duration(minutes: 15));
+            if (gen == 0) return;
+            try {
+              if (!bind.mainIsInstalled()) {
+                showToast(translate("Move LNRDesk to the Applications folder first"));
+                return;
+              }
+              if (bind.mainIsInstalledDaemon(prompt: false)) {
+                showToast(translate("Service déjà installé"));
+                return;
+              }
+              // prompt: true lance osascript dans un thread Rust et rend la main tout
+              // de suite (renvoie false) : aucune fin observable via le bridge.
+              bind.mainIsInstalledDaemon(prompt: true);
+              final ok = await _lnrWaitDaemonInstall(const Duration(minutes: 10));
+              showToast(translate(ok ? "Service installé" : "Installation du service annulée ou échouée"));
+            } catch (e) {
+              showToast(translate("Installation du service impossible"));
+            } finally {
+              _lnrSysLock.release(gen);
+            }
           }
 
           // Suit le osascript lancé par is_installed_daemon(true), enfant direct de ce
@@ -1997,38 +1788,143 @@ jobs:
             }
             return false;
           }
+
+          // Menu : la pastille « Votre identifiant » est le bouton, avec un petit ⋮
+          // discret en bout de pastille. Pendant une action système, le ⋮ devient un
+          // spinner, le tooltip donne l état, et les entrées système sont grisées.
+          Widget LNRMenuButton(BuildContext context) {
+            final textColor = Theme.of(context).textTheme.titleLarge?.color;
+            final RxBool hover = false.obs;
+            Offset pos = Offset.zero;
+            PopupMenuItem<String> entry(String value, IconData icon, String label, bool enabled) {
+              return PopupMenuItem<String>(
+                value: value,
+                enabled: enabled,
+                height: 34,
+                child: Row(children: [
+                  Icon(icon, size: 16, color: textColor?.withOpacity(enabled ? 0.7 : 0.25)),
+                  const SizedBox(width: 10),
+                  Text(label, style: const TextStyle(fontSize: 13, fontFamily: "Outfit")),
+                ]),
+              );
+            }
+
+            return Obx(() {
+              final busy = _lnrSysLock.owner.value.isNotEmpty;
+              final dark = Theme.of(context).brightness == Brightness.dark;
+              final Color fg = dark ? const Color(0xFFD6C8FF) : const Color(0xFF7C3AED);
+              final Color bg = dark ? const Color(0xFF7C3AED).withOpacity(0.25) : const Color(0xFFEDE7FE);
+              return InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTapDown: (d) => pos = d.globalPosition,
+                onTap: () async {
+                  final free = !_lnrSysLock.busy;
+                  final choice = await showMenu<String>(
+                    context: context,
+                    position: RelativeRect.fromLTRB(pos.dx, pos.dy, pos.dx, pos.dy),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    items: [
+                      entry("web", Icons.language, translate("Site web"), true),
+                      if (bind.mainIsInstalled()) entry("update", Icons.system_update_alt, translate("Mettre à jour"), free),
+                      entry("service", Icons.dns_outlined, translate("Installer le service"), free),
+                      entry("settings", Icons.settings, translate("Settings"), true),
+                    ],
+                  );
+                  if (choice == "web") {
+                    await _lnrOpenWebsite();
+                  } else if (choice == "update") {
+                    await _lnrUpdate();
+                  } else if (choice == "service") {
+                    await _lnrInstallService();
+                  } else if (choice == "settings") {
+                    DesktopTabPage.onAddSetting();
+                  }
+                },
+                onHover: (value) => hover.value = value,
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                child: Tooltip(
+                  message: busy ? _lnrSysLock.label.value : translate("Menu"),
+                  child: Container(
+                    padding: const EdgeInsets.only(left: 12, right: 6, top: 4, bottom: 4),
+                    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(translate("Votre identifiant"),
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, fontFamily: "Outfit", color: fg)),
+                        const SizedBox(width: 2),
+                        SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: busy
+                              ? Padding(
+                                  padding: const EdgeInsets.all(2),
+                                  child: CircularProgressIndicator(strokeWidth: 1.5, color: fg),
+                                )
+                              : Icon(Icons.more_vert, size: 14, color: hover.value ? fg : fg.withOpacity(0.45)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            });
+          }
           ~' flutter/lib/desktop/pages/desktop_home_page.dart
           echo "—————————"
 
           # ==============================================================
+          # Carte de statut : mêmes marges et arrondi que les autres cartes, pastille
+          # et texte à la couleur de l état (vert prêt, orange en cours, rouge hors ligne).
           echo "🟢 Remplacement de la barre de statut..."
           perl -i -0777 -pe 's~Widget build\(BuildContext context\) \{\s*final isIncomingOnly = bind\.isIncomingOnly\(\);\s*startServiceWidget\(\).*?\n  \}\s*(?=_buildConnStatusMsg\(\) \{)~Widget build(BuildContext context) {
             return Obx(() {
               final stopped = _svcStopped.value;
               final status = stateGlobal.svcStatus.value;
-              final Color stateColor = stopped || status == SvcStatus.connecting
-                  ? kColorWarn
-                  : (status == SvcStatus.ready
-                      ? const Color.fromARGB(255, 50, 190, 166)
-                      : const Color.fromARGB(255, 224, 79, 95));
+              final dark = Theme.of(context).brightness == Brightness.dark;
+              // 0 = prêt, 1 = connexion en cours ou service arrêté, 2 = hors ligne
+              final int s = stopped || status == SvcStatus.connecting ? 1 : (status == SvcStatus.ready ? 0 : 2);
+              final Color dot = const [Color(0xFF1D9E75), Color(0xFFEF9F27), Color(0xFFE24B4A)][s];
+              final Color tint = const [Color(0xFFE1F5EE), Color(0xFFFAEEDA), Color(0xFFFCEBEB)][s];
+              final Color ink = const [Color(0xFF085041), Color(0xFF633806), Color(0xFF791F1F)][s];
+              final Color fg = dark ? tint : ink;
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 400),
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                color: stateColor.withOpacity(0.28),
+                margin: const EdgeInsets.only(left: 24, right: 24, bottom: 20),
+                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                decoration: BoxDecoration(
+                  color: dark ? dot.withOpacity(0.18) : tint,
+                  borderRadius: BorderRadius.circular(12),
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    DefaultTextStyle.merge(
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
-                      child: Center(child: _buildConnStatusMsg()),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 400),
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(color: dot, shape: BoxShape.circle),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: DefaultTextStyle.merge(
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontWeight: FontWeight.w600, fontFamily: "Outfit", color: fg),
+                            child: _buildConnStatusMsg(),
+                          ),
+                        ),
+                      ],
                     ),
                     if (stopped)
                       InkWell(
                         onTap: () async => await start_service(true),
                         child: Text(translate("Start service"),
-                            style: TextStyle(decoration: TextDecoration.underline, fontSize: em - 2)),
+                            style: TextStyle(decoration: TextDecoration.underline, fontSize: em - 2, fontFamily: "Outfit", color: fg)),
                       ),
                   ],
                 ),
@@ -2042,8 +1938,11 @@ jobs:
           echo "🟢 Textes de la barre de statut..."
           perl -i -pe 's|\("connecting_status", "[^"]*"\)|("connecting_status", "Connexion en cours...")|g' ./src/lang/fr.rs
           perl -i -pe 's|\("Ready", "[^"]*"\)|("Ready", "Prêt pour une assistance")|g' ./src/lang/fr.rs
+          perl -i -pe 's|\("not_ready_status", "[^"]*"\)|("not_ready_status", "Hors ligne, vérifiez Internet")|g' ./src/lang/fr.rs
+          perl -i -pe 's|\("not_ready_status", "[^"]*"\)|("not_ready_status", "Offline, check your Internet connection")|g' ./src/lang/en.rs
           perl -i -pe 's|\("connecting_status", "[^"]*"\)|("connecting_status", "Connecting...")|g' ./src/lang/en.rs
-          perl -i -pe 's|\("Ready", "[^"]*"\)|("Ready", "Ready for remote support")|g' ./src/lang/en.rs
+          # en.rs n a pas d entrée "Ready" : on l ajoute après connecting_status.
+          perl -i -pe 's|(\("connecting_status", "[^"]*"\),)|$1\n        ("Ready", "Ready for remote support"),|' ./src/lang/en.rs
           echo "—————————"
 
           # ==============================================================
@@ -2051,14 +1950,15 @@ jobs:
           # qu à la compilation Dart, 20 minutes plus tard.
           echo "🟢 Vérification des injections..."
           F=flutter/lib/desktop/pages/desktop_home_page.dart
-          for sym in "class _LnrLock" "Widget _lnrIconButton(" "Widget LNRWebsiteButton(" \
-                     "Widget LNRUpdateButton(" "Widget LNRGotoInstallButton(" \
-                     "Widget buildPopupMenu(" "buildIDBoard(BuildContext context) {"; do
+          for sym in "class _LnrLock" "Widget LNRMenuButton(" "Future<void> _lnrOpenWebsite(" \
+                     "Future<void> _lnrUpdate(" "buildIDBoard(BuildContext context) {"; do
             n=$(grep -cF "$sym" "$F")
             if [ "$n" != "1" ]; then echo "❌ '$sym' trouvé $n fois (attendu : 1)"; exit 1; fi
           done
-          grep -qF "LNRUpdateButton(context), LNRGotoInstallButton(context)" "$F" \
-            || { echo "❌ Row de buildIDBoard non remplacée"; exit 1; }
+          grep -qF "LNRMenuButton(context)," "$F" \
+            || { echo "❌ buildIDBoard non remplacé"; exit 1; }
+          grep -qF "family: Outfit" flutter/pubspec.yaml \
+            || { echo "❌ Police Outfit non déclarée"; exit 1; }
           grep -qF "final magicHeight = isMacOS ? 4.0 : 10.0;" flutter/lib/common.dart \
             || { echo "❌ getIncomingOnlyHomeSize non ajusté"; exit 1; }
           echo "✅ Injections OK"
@@ -2071,15 +1971,13 @@ jobs:
           perl -i -pe "s|https://api.rustdesk.com/version/latest|https://listenandresolve.com/rustdesk/api.php?action=check|g" ./libs/hbb_common/src/lib.rs
           # 3. Remplacement des serveurs relais
           perl -i -pe "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.lnr.info/g" ./libs/hbb_common/src/config.rs
-          perl -i -pe "s/([a-zA-Z0-9-]+\.)?rustdesk\.com/rd.lnr.info/g" ./libs/hbb_common/src/websocket.rs
-          # 4. Modification de la sécurité is_public dans config.rs
-          perl -i -0777 -pe 's/pub fn is_public\(url: \&str\)\s*->\s*bool\s*\{.*?\}/pub fn is_public(url: \&str) -> bool { url.contains("listenandresolve.com") }/gs' ./libs/hbb_common/src/config.rs
           echo "—————————"
           
           # ==============================================================
           # Injection du serveur
+          # Le serveur de rendez-vous (rd.lnr.info) est posé par le remplacement
+          # rustdesk.com ci-dessus ; seule la clé publique reste à injecter.
           echo -n "🟢 Configuration du serveur..."
-          perl -i -pe "s|rs-ny\.rustdesk\.com|${RENDEZVOUS_SERVER}|g" ./libs/hbb_common/src/config.rs
           perl -i -pe "s|OeVuKk5nlHiXp\+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=|${RS_PUB_KEY}|g" ./libs/hbb_common/src/config.rs
           echo "—————————"
 
@@ -2149,7 +2047,6 @@ jobs:
           # Modifier le nom de l'entreprise
           echo -n "🟢 Configuration entreprise..."
           perl -i -pe 's|Purslane Tech Pte. Ltd.|Listen and Resolve|g' ./flutter/lib/desktop/pages/desktop_setting_page.dart
-          perl -i -pe 's|PURSLANE|LISTEN AND RESOLVE|g' ./res/msi/preprocess.py
           perl -i -pe 's|Purslane Tech Pte. Ltd.|Listen and Resolve|g' ./res/msi/preprocess.py
           perl -i -pe 's|Purslane Tech Pte. Ltd.|Listen and Resolve|g' ./flutter/windows/runner/Runner.rc
           perl -i -pe 's|Purslane Tech Pte. Ltd.|Listen and Resolve|g' ./Cargo.toml
@@ -2157,7 +2054,6 @@ jobs:
           perl -i -pe 's|Purslane Tech Pte. Ltd.|Listen and Resolve|g' ./src/ui/index.tis
 
           # Modifier le nom du dossier dans APPDATA (pour éviter conflits avec la version officielle)
-          perl -i -pe 's|&APP_NAME\.read()\.unwrap()|"LNRDesk"|g' ./libs/hbb_common/src/config.rs
           perl -i -pe 's|RwLock::new\("RustDesk"\.to_owned\(\)\)|RwLock::new("LNRDesk".to_owned())|' ./libs/hbb_common/src/config.rs
 
           # CHANGE LE NOM DU PRODUIT DANS LE MSI
@@ -2192,7 +2088,6 @@ jobs:
           perl -i -pe 's|com\.carriez\.|com.listenandresolve.|g' ./src/platform/privileges_scripts/uninstall.scpt
           perl -i -pe 's|com\.carriez\.|com.listenandresolve.|g' ./src/platform/privileges_scripts/update.scpt
           # Texte du prompt admin macOS (équivalent UAC)
-          perl -i -pe 's|(with prompt "[^"]*?)RustDesk|$1LNRDesk|g' ./src/platform/macos.rs
           perl -i -pe 's|(with prompt "[^"]*?)RustDesk|$1LNRDesk|g' ./src/platform/privileges_scripts/install.scpt
           perl -i -pe 's|(with prompt "[^"]*?)RustDesk|$1LNRDesk|g' ./src/platform/privileges_scripts/uninstall.scpt
           perl -i -pe 's|(with prompt "[^"]*?)RustDesk|$1LNRDesk|g' ./src/platform/privileges_scripts/update.scpt
@@ -2201,7 +2096,7 @@ jobs:
           # ========================================
           # Nettoyage final
           echo -n "🟢 Nettoyage des fichiers temporaires..."
-          rm -f /tmp/overwritesettings.txt /tmp/builtinsettings.txt /tmp/hardsettings.txt
+          rm -f overwritesettings.txt builtinsettings.txt hardsettings.txt
           echo "—————————"
 #=====# CUSTOMIZATION LISTEN AND RESOLVE
 
@@ -2372,8 +2267,16 @@ jobs:
           done
 
           echo "=== Build component PKG ==="
+          # --root + component plist : BundleIsRelocatable=false, sinon l installeur
+          # met à jour une copie de LNRDesk.app trouvée ailleurs sur le disque
+          # au lieu d écrire dans /Applications.
+          PKG_ROOT="$(mktemp -d)"
+          ditto "$APP_PATH" "$PKG_ROOT/LNRDesk.app"
+          pkgbuild --analyze --root "$PKG_ROOT" LNRDesk-component.plist
+          /usr/libexec/PlistBuddy -c "Set :0:BundleIsRelocatable false" LNRDesk-component.plist
           pkgbuild \
-            --component "$APP_PATH" \
+            --root "$PKG_ROOT" \
+            --component-plist LNRDesk-component.plist \
             --install-location /Applications \
             --identifier com.listenandresolve.LNRDesk \
             --version "${{ env.VERSION }}" \
