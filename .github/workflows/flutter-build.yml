@@ -329,7 +329,7 @@ jobs:
                       controller: model.serverId,
                       readOnly: true,
                       textAlign: TextAlign.center,
-                      decoration: InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero, filled: true, fillColor: Colors.transparent),
+                      decoration: InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero, filled: true, fillColor: Colors.transparent, hoverColor: Colors.transparent),
                       style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, fontFamily: "Outfit", color: Theme.of(context).textTheme.titleLarge?.color),
                     ).workaroundFreezeLinuxMint(),
                   ),
@@ -416,7 +416,6 @@ jobs:
           // Installation / mise à jour / service : mutuellement exclusifs.
           final _lnrSysLock = _LnrLock();
           // Site web : simple anti-rebond, ni bloquant ni bloqué par les actions système.
-          final _lnrWebLock = _LnrLock();
 
           // Lance un processus, draine stdout/stderr (évite un blocage sur pipe plein)
           // et le tue s'il dépasse [limit]. Renvoie true si code de sortie 0.
@@ -457,21 +456,6 @@ jobs:
           # pas de tilde (délimiteur), pas de backslash.
           echo "🟢 Injection du menu LNR (Windows)..."
           perl -i -0777 -pe 's~(?=\n  buildPasswordBoard\(BuildContext context\) \{)~
-
-          Future<void> _lnrOpenWebsite() async {
-            final gen = _lnrWebLock.acquire("web", translate("Ouverture du site…"), const Duration(seconds: 15));
-            if (gen == 0) return;
-            try {
-              final ok = await launchUrl(Uri.parse("https://listenandresolve.com"), mode: LaunchMode.externalApplication);
-              if (!ok) showToast(translate("Ouverture du site impossible"));
-              // Anti-rebond : absorbe les clics impatients pendant que le navigateur arrive.
-              await Future.delayed(const Duration(milliseconds: 1500));
-            } catch (e) {
-              showToast(translate("Ouverture du site impossible"));
-            } finally {
-              _lnrWebLock.release(gen);
-            }
-          }
 
           // withService false : installation SANS service. true : AVEC service.
           Future<void> _lnrInstall(bool withService) async {
@@ -577,22 +561,22 @@ jobs:
             return false;
           }
 
-          // Menu : la pastille « Votre identifiant » est le bouton, avec un petit ⋮
-          // discret en bout de pastille. Pendant une action système, le ⋮ devient un
-          // spinner, le tooltip donne l état, et les entrées système sont grisées.
+          // Menu : la pastille « Votre identifiant » est le bouton, sans icône ni effet
+          // de survol. Pendant une action système, un petit spinner apparaît à côté du
+          // texte, le tooltip donne l état, et les entrées système sont grisées.
           Widget LNRMenuButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
-            final RxBool hover = false.obs;
             Offset pos = Offset.zero;
             PopupMenuItem<String> entry(String value, IconData icon, String label, bool enabled) {
               return PopupMenuItem<String>(
                 value: value,
                 enabled: enabled,
-                height: 34,
+                height: 26,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(children: [
-                  Icon(icon, size: 16, color: textColor?.withOpacity(enabled ? 0.7 : 0.25)),
-                  const SizedBox(width: 10),
-                  Text(label, style: const TextStyle(fontSize: 13, fontFamily: "Outfit")),
+                  Icon(icon, size: 13, color: textColor?.withOpacity(enabled ? 0.7 : 0.25)),
+                  const SizedBox(width: 8),
+                  Text(label, style: const TextStyle(fontSize: 12, fontFamily: "Outfit")),
                 ]),
               );
             }
@@ -602,8 +586,28 @@ jobs:
               final dark = Theme.of(context).brightness == Brightness.dark;
               final Color fg = dark ? const Color(0xFFD6C8FF) : const Color(0xFF7C3AED);
               final Color bg = dark ? const Color(0xFF7C3AED).withOpacity(0.25) : const Color(0xFFEDE7FE);
+              final Widget pill = Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(translate("Votre identifiant"),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, fontFamily: "Outfit", color: fg)),
+                    if (busy) const SizedBox(width: 6),
+                    if (busy)
+                      SizedBox(
+                        width: 10,
+                        height: 10,
+                        child: CircularProgressIndicator(strokeWidth: 1.5, color: fg),
+                      ),
+                  ],
+                ),
+              );
               return InkWell(
                 borderRadius: BorderRadius.circular(999),
+                hoverColor: Colors.transparent,
+                mouseCursor: SystemMouseCursors.basic,
                 onTapDown: (d) => pos = d.globalPosition,
                 onTap: () async {
                   final free = !_lnrSysLock.busy;
@@ -612,16 +616,13 @@ jobs:
                     position: RelativeRect.fromLTRB(pos.dx, pos.dy, pos.dx, pos.dy),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     items: [
-                      entry("web", Icons.language, translate("Site web"), true),
                       if (_lnrIsInstalledCopy()) entry("update", Icons.system_update_alt, translate("Mettre à jour"), free),
                       entry("install", Icons.install_desktop, translate("Installer"), free),
                       entry("service", Icons.dns_outlined, translate("Installer avec service"), free),
                       entry("settings", Icons.settings, translate("Settings"), true),
                     ],
                   );
-                  if (choice == "web") {
-                    await _lnrOpenWebsite();
-                  } else if (choice == "update") {
+                  if (choice == "update") {
                     await _lnrUpdate();
                   } else if (choice == "install") {
                     await _lnrInstall(false);
@@ -631,34 +632,9 @@ jobs:
                     DesktopTabPage.onAddSetting();
                   }
                 },
-                onHover: (value) => hover.value = value,
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
-                child: Tooltip(
-                  message: busy ? _lnrSysLock.label.value : translate("Menu"),
-                  child: Container(
-                    padding: const EdgeInsets.only(left: 12, right: 6, top: 4, bottom: 4),
-                    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(translate("Votre identifiant"),
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, fontFamily: "Outfit", color: fg)),
-                        const SizedBox(width: 2),
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: busy
-                              ? Padding(
-                                  padding: const EdgeInsets.all(2),
-                                  child: CircularProgressIndicator(strokeWidth: 1.5, color: fg),
-                                )
-                              : Icon(Icons.more_vert, size: 14, color: hover.value ? fg : fg.withOpacity(0.45)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                child: busy ? Tooltip(message: _lnrSysLock.label.value, child: pill) : pill,
               );
             });
           }
@@ -687,6 +663,7 @@ jobs:
                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
                 decoration: BoxDecoration(
                   color: dark ? dot.withOpacity(0.18) : tint,
+                  border: Border.all(color: dot.withOpacity(dark ? 0.5 : 0.35)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -741,7 +718,7 @@ jobs:
           # qu à la compilation Dart, 20 minutes plus tard.
           echo "🟢 Vérification des injections..."
           F=flutter/lib/desktop/pages/desktop_home_page.dart
-          for sym in "class _LnrLock" "Widget LNRMenuButton(" "Future<void> _lnrOpenWebsite(" \
+          for sym in "class _LnrLock" "Widget LNRMenuButton(" \
                      "Future<void> _lnrUpdate(" "buildIDBoard(BuildContext context) {"; do
             n=$(grep -cF "$sym" "$F")
             if [ "$n" != "1" ]; then echo "❌ '$sym' trouvé $n fois (attendu : 1)"; exit 1; fi
@@ -831,10 +808,17 @@ jobs:
                   m.insert("disable-settings".to_string(), "Y".to_string());
                   m.insert("disable-account".to_string(), "Y".to_string());
                   m.insert("password".to_string(), "__PASSWORD_PLACEHOLDER__".to_string());
+                  m.insert("salt".to_string(), "__SALT_PLACEHOLDER__".to_string());
                   RwLock::new(m)
               };
           EOF
-          perl -i -pe 's/__PASSWORD_PLACEHOLDER__/$ENV{RS_PWD}/g' hardsettings.txt
+          # Mot de passe préréglé : seul son hachage part dans le binaire, jamais le clair.
+          # Format RustDesk : "00" + base64(SHA-256(mot de passe + sel)), sel dans la clé "salt".
+          [ -n "$RS_PWD" ] || { echo "❌ Secret RS_PWD vide"; exit 1; }
+          export RS_SALT=$(openssl rand -hex 16)
+          export RS_HASH="00$(printf '%s%s' "$RS_PWD" "$RS_SALT" | openssl dgst -sha256 -binary | base64 | tr -d '\r\n')"
+          perl -i -pe 's/__PASSWORD_PLACEHOLDER__/$ENV{RS_HASH}/g' hardsettings.txt
+          perl -i -pe 's/__SALT_PLACEHOLDER__/$ENV{RS_SALT}/g' hardsettings.txt
           perl -i -pe 's/@/\\@/g' hardsettings.txt
           perl -i -0pe 's|pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);|'"$(cat hardsettings.txt)"'|g' ./libs/hbb_common/src/config.rs
           echo "—————————"
@@ -1535,7 +1519,7 @@ jobs:
                       controller: model.serverId,
                       readOnly: true,
                       textAlign: TextAlign.center,
-                      decoration: InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero, filled: true, fillColor: Colors.transparent),
+                      decoration: InputDecoration(border: InputBorder.none, isDense: true, contentPadding: EdgeInsets.zero, filled: true, fillColor: Colors.transparent, hoverColor: Colors.transparent),
                       style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, fontFamily: "Outfit", color: Theme.of(context).textTheme.titleLarge?.color),
                     ).workaroundFreezeLinuxMint(),
                   ),
@@ -1594,7 +1578,6 @@ jobs:
           // Installation / mise à jour / service : mutuellement exclusifs.
           final _lnrSysLock = _LnrLock();
           // Site web : simple anti-rebond, ni bloquant ni bloqué par les actions système.
-          final _lnrWebLock = _LnrLock();
 
           // Lance un processus, draine stdout/stderr (évite un blocage sur pipe plein)
           // et le tue s'il dépasse [limit]. Renvoie true si code de sortie 0.
@@ -1635,21 +1618,6 @@ jobs:
           # pas de tilde (délimiteur), pas de backslash.
           echo "🟢 Injection du menu LNR (macOS)..."
           perl -i -0777 -pe 's~(?=\n  buildPasswordBoard\(BuildContext context\) \{)~
-
-          Future<void> _lnrOpenWebsite() async {
-            final gen = _lnrWebLock.acquire("web", translate("Ouverture du site…"), const Duration(seconds: 15));
-            if (gen == 0) return;
-            try {
-              final ok = await launchUrl(Uri.parse("https://listenandresolve.com"), mode: LaunchMode.externalApplication);
-              if (!ok) showToast(translate("Ouverture du site impossible"));
-              // Anti-rebond : absorbe les clics impatients pendant que le navigateur arrive.
-              await Future.delayed(const Duration(milliseconds: 1500));
-            } catch (e) {
-              showToast(translate("Ouverture du site impossible"));
-            } finally {
-              _lnrWebLock.release(gen);
-            }
-          }
 
           // Proposé dès que l app tourne depuis /Applications/<App>.app (mainIsInstalled),
           // avec ou sans service : update_me (src/platform/macos.rs) gère les deux cas.
@@ -1789,22 +1757,22 @@ jobs:
             return false;
           }
 
-          // Menu : la pastille « Votre identifiant » est le bouton, avec un petit ⋮
-          // discret en bout de pastille. Pendant une action système, le ⋮ devient un
-          // spinner, le tooltip donne l état, et les entrées système sont grisées.
+          // Menu : la pastille « Votre identifiant » est le bouton, sans icône ni effet
+          // de survol. Pendant une action système, un petit spinner apparaît à côté du
+          // texte, le tooltip donne l état, et les entrées système sont grisées.
           Widget LNRMenuButton(BuildContext context) {
             final textColor = Theme.of(context).textTheme.titleLarge?.color;
-            final RxBool hover = false.obs;
             Offset pos = Offset.zero;
             PopupMenuItem<String> entry(String value, IconData icon, String label, bool enabled) {
               return PopupMenuItem<String>(
                 value: value,
                 enabled: enabled,
-                height: 34,
+                height: 26,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 child: Row(children: [
-                  Icon(icon, size: 16, color: textColor?.withOpacity(enabled ? 0.7 : 0.25)),
-                  const SizedBox(width: 10),
-                  Text(label, style: const TextStyle(fontSize: 13, fontFamily: "Outfit")),
+                  Icon(icon, size: 13, color: textColor?.withOpacity(enabled ? 0.7 : 0.25)),
+                  const SizedBox(width: 8),
+                  Text(label, style: const TextStyle(fontSize: 12, fontFamily: "Outfit")),
                 ]),
               );
             }
@@ -1814,8 +1782,28 @@ jobs:
               final dark = Theme.of(context).brightness == Brightness.dark;
               final Color fg = dark ? const Color(0xFFD6C8FF) : const Color(0xFF7C3AED);
               final Color bg = dark ? const Color(0xFF7C3AED).withOpacity(0.25) : const Color(0xFFEDE7FE);
+              final Widget pill = Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(translate("Votre identifiant"),
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, fontFamily: "Outfit", color: fg)),
+                    if (busy) const SizedBox(width: 6),
+                    if (busy)
+                      SizedBox(
+                        width: 10,
+                        height: 10,
+                        child: CircularProgressIndicator(strokeWidth: 1.5, color: fg),
+                      ),
+                  ],
+                ),
+              );
               return InkWell(
                 borderRadius: BorderRadius.circular(999),
+                hoverColor: Colors.transparent,
+                mouseCursor: SystemMouseCursors.basic,
                 onTapDown: (d) => pos = d.globalPosition,
                 onTap: () async {
                   final free = !_lnrSysLock.busy;
@@ -1824,15 +1812,12 @@ jobs:
                     position: RelativeRect.fromLTRB(pos.dx, pos.dy, pos.dx, pos.dy),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     items: [
-                      entry("web", Icons.language, translate("Site web"), true),
                       if (bind.mainIsInstalled()) entry("update", Icons.system_update_alt, translate("Mettre à jour"), free),
                       entry("service", Icons.dns_outlined, translate("Installer le service"), free),
                       entry("settings", Icons.settings, translate("Settings"), true),
                     ],
                   );
-                  if (choice == "web") {
-                    await _lnrOpenWebsite();
-                  } else if (choice == "update") {
+                  if (choice == "update") {
                     await _lnrUpdate();
                   } else if (choice == "service") {
                     await _lnrInstallService();
@@ -1840,34 +1825,9 @@ jobs:
                     DesktopTabPage.onAddSetting();
                   }
                 },
-                onHover: (value) => hover.value = value,
                 splashColor: Colors.transparent,
                 highlightColor: Colors.transparent,
-                child: Tooltip(
-                  message: busy ? _lnrSysLock.label.value : translate("Menu"),
-                  child: Container(
-                    padding: const EdgeInsets.only(left: 12, right: 6, top: 4, bottom: 4),
-                    decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(translate("Votre identifiant"),
-                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, fontFamily: "Outfit", color: fg)),
-                        const SizedBox(width: 2),
-                        SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: busy
-                              ? Padding(
-                                  padding: const EdgeInsets.all(2),
-                                  child: CircularProgressIndicator(strokeWidth: 1.5, color: fg),
-                                )
-                              : Icon(Icons.more_vert, size: 14, color: hover.value ? fg : fg.withOpacity(0.45)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                child: busy ? Tooltip(message: _lnrSysLock.label.value, child: pill) : pill,
               );
             });
           }
@@ -1896,6 +1856,7 @@ jobs:
                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
                 decoration: BoxDecoration(
                   color: dark ? dot.withOpacity(0.18) : tint,
+                  border: Border.all(color: dot.withOpacity(dark ? 0.5 : 0.35)),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -1950,7 +1911,7 @@ jobs:
           # qu à la compilation Dart, 20 minutes plus tard.
           echo "🟢 Vérification des injections..."
           F=flutter/lib/desktop/pages/desktop_home_page.dart
-          for sym in "class _LnrLock" "Widget LNRMenuButton(" "Future<void> _lnrOpenWebsite(" \
+          for sym in "class _LnrLock" "Widget LNRMenuButton(" \
                      "Future<void> _lnrUpdate(" "buildIDBoard(BuildContext context) {"; do
             n=$(grep -cF "$sym" "$F")
             if [ "$n" != "1" ]; then echo "❌ '$sym' trouvé $n fois (attendu : 1)"; exit 1; fi
@@ -2035,10 +1996,17 @@ jobs:
                   m.insert("disable-settings".to_string(), "Y".to_string());
                   m.insert("disable-account".to_string(), "Y".to_string());
                   m.insert("password".to_string(), "__PASSWORD_PLACEHOLDER__".to_string());
+                  m.insert("salt".to_string(), "__SALT_PLACEHOLDER__".to_string());
                   RwLock::new(m)
               };
           EOF
-          perl -i -pe 's/__PASSWORD_PLACEHOLDER__/$ENV{RS_PWD}/g' hardsettings.txt
+          # Mot de passe préréglé : seul son hachage part dans le binaire, jamais le clair.
+          # Format RustDesk : "00" + base64(SHA-256(mot de passe + sel)), sel dans la clé "salt".
+          [ -n "$RS_PWD" ] || { echo "❌ Secret RS_PWD vide"; exit 1; }
+          export RS_SALT=$(openssl rand -hex 16)
+          export RS_HASH="00$(printf '%s%s' "$RS_PWD" "$RS_SALT" | openssl dgst -sha256 -binary | base64 | tr -d '\r\n')"
+          perl -i -pe 's/__PASSWORD_PLACEHOLDER__/$ENV{RS_HASH}/g' hardsettings.txt
+          perl -i -pe 's/__SALT_PLACEHOLDER__/$ENV{RS_SALT}/g' hardsettings.txt
           perl -i -pe 's/@/\\@/g' hardsettings.txt
           perl -i -0pe 's|pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default\(\);|'"$(cat hardsettings.txt)"'|g' ./libs/hbb_common/src/config.rs
           echo "—————————"
