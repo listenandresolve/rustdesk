@@ -670,7 +670,7 @@ jobs:
                 decoration: BoxDecoration(
                   color: dark ? dot.withOpacity(0.18) : tint,
                   border: Border.all(color: dot.withOpacity(dark ? 0.5 : 0.35)),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -1865,7 +1865,7 @@ jobs:
                 decoration: BoxDecoration(
                   color: dark ? dot.withOpacity(0.18) : tint,
                   border: Border.all(color: dot.withOpacity(dark ? 0.5 : 0.35)),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(8),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
