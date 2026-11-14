@@ -1090,7 +1090,8 @@ jobs:
           trusted-signing-account-name: ${{ secrets.AZURE_CODE_SIGNING_NAME }}
           certificate-profile-name: ${{ secrets.AZURE_CERT_PROFILE_NAME }}
           files-folder: ./rustdesk
-          files-folder-filter: exe
+          # exe + dll : Smart App Control (Windows 11) bloque les DLL non signées (0xc0e90002)
+          files-folder-filter: exe,dll
 ### CUSTOMIZATION LISTEN AND RESOLVE
 
       - name: Build self-extracted executable
