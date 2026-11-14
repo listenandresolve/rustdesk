@@ -757,10 +757,13 @@ jobs:
           # ==============================================================
           # Injection des Overwrite Settings
           echo -n "🟢 Configuration des Overwrite Settings..."
+          # relay-server : doit être le relais annoncé par le serveur (rd.listenandresolve.com:21117).
+          # Sinon le client ignore la demande de relais (check_relay_request) et la connexion expire.
           cat << 'EOF' > overwritesettings.txt
               pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
                   m.insert("api-server".to_string(), "https://rd.lnr.info".to_string());
+                  m.insert("relay-server".to_string(), "rd.listenandresolve.com".to_string());
                   m.insert("access-mode".to_string(), "full".to_string());
                   m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
                   m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
@@ -1946,10 +1949,13 @@ jobs:
           # ==============================================================
           # Injection des Overwrite Settings
           echo -n "🟢 Configuration des Overwrite Settings..."
+          # relay-server : doit être le relais annoncé par le serveur (rd.listenandresolve.com:21117).
+          # Sinon le client ignore la demande de relais (check_relay_request) et la connexion expire.
           cat << 'EOF' > overwritesettings.txt
               pub static ref OVERWRITE_SETTINGS: RwLock<HashMap<String, String>> = {
                   let mut m = HashMap::new();
                   m.insert("api-server".to_string(), "https://rd.lnr.info".to_string());
+                  m.insert("relay-server".to_string(), "rd.listenandresolve.com".to_string());
                   m.insert("access-mode".to_string(), "full".to_string());
                   m.insert("allow-remote-config-modification".to_string(), "Y".to_string());
                   m.insert("allow-remove-wallpaper".to_string(), "Y".to_string());
