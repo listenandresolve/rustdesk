@@ -365,6 +365,12 @@ jobs:
 
           # 5. ui_cm_interface.rs:1647 — bouton Élever du CM
           perl -i -pe 's/\Qreturn !crate::platform::is_installed();\E/return !crate::platform::is_self_service_running();/' src/ui_cm_interface.rs
+
+          # 6. core_main.rs — installé SANS service : demander les privilèges dès le lancement
+          #    (UAC, puis processus SYSTEM), comme le fait déjà le mode quick support portable.
+          perl -i -pe 's~\Q_is_quick_support |= !crate::platform::is_installed()\E~_is_quick_support |= (!crate::platform::is_installed() || config::Config::get_option("no-service") == "Y")~' src/core_main.rs
+          perl -i -pe 's~\Q&& (is_quick_support_exe(&arg_exe)\E~\&\& (is_quick_support_exe(\&arg_exe) || (crate::platform::is_installed() \&\& config::Config::get_option("no-service") == "Y")~' src/core_main.rs
+          perl -i -pe 's~^(    if )!crate::platform::is_installed\(\)(\s*)$~$1(!crate::platform::is_installed() || config::Config::get_option("no-service") == "Y")$2~' src/core_main.rs
           echo "—————————"
 
           # ==============================================================
@@ -642,8 +648,8 @@ jobs:
           echo "—————————"
 
           # ==============================================================
-          # Carte de statut discrète : fine, texte 12 px non gras, pastille et texte à la
-          # couleur de l état (vert prêt, orange en cours, rouge hors ligne).
+          # Carte de statut : mêmes marges et arrondi que les autres cartes, pastille
+          # et texte à la couleur de l état (vert prêt, orange en cours, rouge hors ligne).
           echo "🟢 Remplacement de la barre de statut..."
           perl -i -0777 -pe 's~Widget build\(BuildContext context\) \{\s*final isIncomingOnly = bind\.isIncomingOnly\(\);\s*startServiceWidget\(\).*?\n  \}\s*(?=_buildConnStatusMsg\(\) \{)~Widget build(BuildContext context) {
             return Obx(() {
@@ -656,7 +662,6 @@ jobs:
               final Color tint = const [Color(0xFFE1F5EE), Color(0xFFFAEEDA), Color(0xFFFCEBEB)][s];
               final Color ink = const [Color(0xFF085041), Color(0xFF633806), Color(0xFF791F1F)][s];
               final Color fg = dark ? tint : ink;
-              widget.onSvcStatusChanged?.call();
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 400),
                 width: double.infinity,
@@ -681,17 +686,9 @@ jobs:
                         ),
                         const SizedBox(width: 6),
                         Flexible(
-                          child: Text(
-                            stopped
-                                ? translate("Service is not running")
-                                : status == SvcStatus.connecting
-                                    ? translate("connecting_status")
-                                    : status == SvcStatus.notReady
-                                        ? translate("not_ready_status")
-                                        : translate("Ready"),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 12, fontFamily: "Outfit", color: fg.withOpacity(0.8)),
-                          ),
+                          child: Text((_buildConnStatusMsg() as Text).data ?? "",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 11, fontFamily: "Outfit", color: fg)),
                         ),
                       ],
                     ),
@@ -699,7 +696,7 @@ jobs:
                       InkWell(
                         onTap: () async => await start_service(true),
                         child: Text(translate("Start service"),
-                            style: TextStyle(decoration: TextDecoration.underline, fontSize: 11, fontFamily: "Outfit", color: fg.withOpacity(0.8))),
+                            style: TextStyle(decoration: TextDecoration.underline, fontSize: 11, fontFamily: "Outfit", color: fg)),
                       ),
                   ],
                 ),
@@ -1846,8 +1843,8 @@ jobs:
           echo "—————————"
 
           # ==============================================================
-          # Carte de statut discrète : fine, texte 12 px non gras, pastille et texte à la
-          # couleur de l état (vert prêt, orange en cours, rouge hors ligne).
+          # Carte de statut : mêmes marges et arrondi que les autres cartes, pastille
+          # et texte à la couleur de l état (vert prêt, orange en cours, rouge hors ligne).
           echo "🟢 Remplacement de la barre de statut..."
           perl -i -0777 -pe 's~Widget build\(BuildContext context\) \{\s*final isIncomingOnly = bind\.isIncomingOnly\(\);\s*startServiceWidget\(\).*?\n  \}\s*(?=_buildConnStatusMsg\(\) \{)~Widget build(BuildContext context) {
             return Obx(() {
@@ -1860,7 +1857,6 @@ jobs:
               final Color tint = const [Color(0xFFE1F5EE), Color(0xFFFAEEDA), Color(0xFFFCEBEB)][s];
               final Color ink = const [Color(0xFF085041), Color(0xFF633806), Color(0xFF791F1F)][s];
               final Color fg = dark ? tint : ink;
-              widget.onSvcStatusChanged?.call();
               return AnimatedContainer(
                 duration: const Duration(milliseconds: 400),
                 width: double.infinity,
@@ -1885,17 +1881,9 @@ jobs:
                         ),
                         const SizedBox(width: 6),
                         Flexible(
-                          child: Text(
-                            stopped
-                                ? translate("Service is not running")
-                                : status == SvcStatus.connecting
-                                    ? translate("connecting_status")
-                                    : status == SvcStatus.notReady
-                                        ? translate("not_ready_status")
-                                        : translate("Ready"),
-                            textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 12, fontFamily: "Outfit", color: fg.withOpacity(0.8)),
-                          ),
+                          child: Text((_buildConnStatusMsg() as Text).data ?? "",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 11, fontFamily: "Outfit", color: fg)),
                         ),
                       ],
                     ),
@@ -1903,7 +1891,7 @@ jobs:
                       InkWell(
                         onTap: () async => await start_service(true),
                         child: Text(translate("Start service"),
-                            style: TextStyle(decoration: TextDecoration.underline, fontSize: 11, fontFamily: "Outfit", color: fg.withOpacity(0.8))),
+                            style: TextStyle(decoration: TextDecoration.underline, fontSize: 11, fontFamily: "Outfit", color: fg)),
                       ),
                   ],
                 ),
